@@ -25,12 +25,12 @@ end
 
 """
 
-`ParamName` is the union of valid types for the name of a parameter.  In
+`Name` is the union of valid types for the name of a parameter or a file.  In
 practice, these are the types which can be automatically converted to a
 `Cstring` by `ccall`.
 
 """
-const ParamName = Union{AbstractString,Symbol}
+const Name = Union{AbstractString,Symbol}
 
 """
 
