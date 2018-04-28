@@ -44,6 +44,9 @@ them easy to use:
   functions taking references of one or more returned values are wrapped so
   as to return these values.
 
+For code conversionor finding the relevant documentation, the C functions
+and corresponding Julia methods are listed [here](doc/conversion.md).
+
 
 ### Restrictions
 
