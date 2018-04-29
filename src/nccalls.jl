@@ -355,8 +355,6 @@ end
     @call(:ncGrabCloseImageParams, Status, (ImageParams, ), imageParams)
 
 for (jf, cf, T) in (
-    # int ncGrabGetOverrun(NcGrab grab, int* overrunOccurred);
-    (:getOverrun, :ncGrabGetOverrun, Cint),
 
     # int ncGrabGetNbrDroppedImages(NcGrab grab, int* nbrDroppedImages);
     (:getNbrDroppedImages, :ncGrabGetNbrDroppedImages, Cint),
@@ -391,6 +389,13 @@ for (jf, cf, T) in (
         end
 
     end
+end
+
+# int ncGrabGetOverrun(NcGrab grab, int* overrunOccurred);
+function getOverrun(grab::Grab)
+    value = Ref{Cint}()
+    @call(:ncGrabGetOverrun, Status, (Grab, Ptr{Cint}), grab, value)
+    return (value[] != 0)
 end
 
 @inline setSize(grab::Grab, width::Integer, height::Integer) =
@@ -824,9 +829,6 @@ for (jf, cf, T) in (
     # int ncCamGetHeartbeat(NcCam cam, int *timeMs);
     (:getHeartbeat, :ncCamGetHeartbeat, Cint),
 
-    # int ncCamGetOverrun(NcCam cam, int* overrunOccurred);
-    (:getOverrun, :ncCamGetOverrun, Cint),
-
     # int ncCamGetNbrDroppedImages(NcCam cam, int* nbrDroppedImages);
     (:getNbrDroppedImages, :ncCamGetNbrDroppedImages, Cint),
 
@@ -872,6 +874,13 @@ for (jf, cf, T) in (
         end
 
     end
+end
+
+# int ncCamGetOverrun(NcCam cam, int* overrunOccurred);
+function getOverrun(cam::Cam)
+    value = Ref{Cint}()
+    @call(:ncCamGetOverrun, Status, (Cam, Ptr{Cint}), cam, value)
+    return (value[] != 0)
 end
 
 for (jf, cf, T1, T2) in (
