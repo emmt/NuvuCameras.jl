@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 233 have been currently interfaced.
+# 253 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -323,24 +323,6 @@ for (jf, Tj, cf, Tc) in (
     end
 end
 
-#- # int ncGrabRead(NcGrab grab, NcImage** imageAcqu);
-#- @inline ncGrabRead(grab::Grab, imageAcqu::Ptr{Ptr{Image}}) =
-#-     @call(:ncGrabRead, Status,
-#-           (Grab, Ptr{Ptr{Image}}),
-#-           grab, imageAcqu)
-
-#- # int ncGrabReadChronological(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
-#- @inline ncGrabReadChronological(grab::Grab, imageAcqu::Ptr{Ptr{Image}}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncGrabReadChronological, Status,
-#-           (Grab, Ptr{Ptr{Image}}, Ptr{Cint}),
-#-           grab, imageAcqu, nbrImagesSkipped)
-
-#- # int ncGrabReadChronologicalNonBlocking(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
-#- @inline ncGrabReadChronologicalNonBlocking(grab::Grab, imageAcqu::Ptr{Ptr{Image}}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncGrabReadChronologicalNonBlocking, Status,
-#-           (Grab, Ptr{Ptr{Image}}, Ptr{Cint}),
-#-           grab, imageAcqu, nbrImagesSkipped)
-
 @inline function open(::Type{ImageParams{Grab}})
     value = Ref{ImageParams{Grab}}()
     # int ncGrabOpenImageParams(ImageParams *imageParams);
@@ -359,6 +341,9 @@ end
     @call(:ncGrabCloseImageParams, Status, (ImageParams, ), imageParams)
 
 for (jf, cf, T) in (
+
+    # int ncGrabRead(NcGrab grab, NcImage** imageAcqu);
+    (:raed, :ncGrabRead, Ptr{Image}),
 
     # int ncGrabGetNbrDroppedImages(NcGrab grab, int* nbrDroppedImages);
     (:getNbrDroppedImages, :ncGrabGetNbrDroppedImages, Cint),
@@ -406,26 +391,61 @@ end
     # int ncGrabSetSize(NcGrab grab, int width, int height);
     @call(:ncGrabSetSize, Status, (Grab, Cint, Cint), grab, width, height)
 
-@inline function getSize(grab::Grab)
-    width = Ref{Cint}()
-    height = Ref{Cint}()
+for (jf, cf, T1, T2) in (
+
     # int ncGrabGetSize(NcGrab grab, int* width, int* height);
-    @call(:ncGrabGetSize, Status, (Grab, Ptr{Cint}, Ptr{Cint}),
-          grab, width, height)
-    return width[], height[]
+    (:getSize, :ncGrabGetSize, Cint, Cint),
+
+    # int ncGrabReadChronological(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, :ncGrabReadChronological, Ptr{Image}, Cint),
+
+    # int ncGrabReadChronologicalNonBlocking(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, :ncGrabReadChronologicalNonBlocking, Ptr{Image}, Cint))
+
+    @eval begin
+
+        @inline function $jf(grab::Grab)
+            val1 = Ref{$T1}()
+            val2 = Ref{$T2}()
+            @call($cf, Status, (Grab, Ptr{$T1}, Ptr{$T2}),
+                  grab, val1, val2)
+            return val1[], val2[]
+        end
+    end
 end
 
-#- # int ncGrabSaveImage(NcGrab grab, const NcImage* imageNc, const char* saveName, enum ImageFormat saveFormat, int overwriteFlag);
-#- @inline ncGrabSaveImage(grab::Grab, imageNc::Ptr{Image}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, overwriteFlag::Cint) =
-#-     @call(:ncGrabSaveImage, Status,
-#-           (Grab, Ptr{Image}, Ptr{Cchar}, ImageFormat, Cint),
-#-           grab, imageNc, saveName, saveFormat, overwriteFlag)
+function saveImage(grab::Grab, image::Ptr{Image}, name::Name,
+                   saveFormat::ImageFormat, overwrite::Bool)
+    # int ncGrabSaveImage(NcGrab grab, const NcImage* imageNc,
+    #                     const char* saveName, enum ImageFormat saveFormat,
+    #                     int overwriteFlag);
+    @call(:ncGrabSaveImage, Status,
+          (Grab, Ptr{Image}, Cstring, ImageFormat, Cint),
+          grab, image, name, saveFormat, overwrite)
+end
 
-#- # int ncGrabSaveImageEx(NcGrab grab, const void* imageNc, const char* saveName, enum ImageFormat saveFormat, enum ImageDataType dataFormat, int overwriteFlag);
-#- @inline ncGrabSaveImageEx(grab::Grab, imageNc::Ptr{Void}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, dataFormat::ImageDataType, overwriteFlag::Cint) =
-#-     @call(:ncGrabSaveImageEx, Status,
-#-           (Grab, Ptr{Void}, Ptr{Cchar}, ImageFormat, ImageDataType, Cint),
-#-           grab, imageNc, saveName, saveFormat, dataFormat, overwriteFlag)
+function saveImage(grab::Grab, image::Ptr{Void}, name::Name,
+                   imageFormat::ImageFormat, dataFormat::ImageDataType,
+                   overwrite::Bool)
+    # int ncGrabSaveImageEx(NcGrab grab, const void* imageNc,
+    #                       const char* saveName, enum ImageFormat saveFormat,
+    #                       enum ImageDataType dataFormat, int overwriteFlag);
+    @call(:ncGrabSaveImageEx, Status,
+          (Grab, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cint),
+          grab, image, name, imageFormat, dataFormat, overwrite)
+end
+
+function saveImage(grab::Grab, image::Ptr{T}, name::Name,
+                   saveFormat::ImageFormat,
+                   overwrite::Bool) where {T<:Union{UInt32,UInt64,Cfloat}}
+    saveImage(grab, Ptr{Void}(image), name, saveFormat, getPixelType(T),
+              overwrite)
+end
+
+function saveImage(grab::Grab, image::DenseMatrix{<:PixelTypes}, name::Name,
+                   saveFormat::ImageFormat, overwrite::Bool)
+    saveImage(grab, pointer(image), name, saveFormat, overwrite)
+end
 
 #- # int ncGrabStartSaveAcquisition(NcGrab grab, const char *saveName, enum ImageFormat saveFormat, int imagesPerCubes, int nbrOfCubes, int overwriteFlag);
 #- @inline ncGrabStartSaveAcquisition(grab::Grab, saveName::Ptr{Cchar}, saveFormat::ImageFormat, imagesPerCubes::Cint, nbrOfCubes::Cint, overwriteFlag::Cint) =
@@ -658,6 +678,12 @@ for (jf, Tj, cf, Tc) in (
     # int ncCamSetTimestampMode(NcCam cam, enum TimestampMode timestampMode);
     (:setTimestampMode, TimestampMode, :ncCamSetTimestampMode, TimestampMode),
 
+    # int ncCamReadUInt32(NcCam cam, uint32_t *image);
+    (:read, Union{Ptr{UInt32},DenseMatrix{UInt32}}, :ncCamReadUInt32, Ptr{UInt32}),
+
+    # int ncCamReadFloat(NcCam cam, float *image);
+    (:read, Union{Ptr{Cfloat},DenseMatrix{Cfloat}}, :ncCamReadUInt32, Ptr{Cfloat}),
+
     # int ncCamLoadParam(NcCam cam, const char *saveName);
     (:loadParam, Name, :ncCamLoadParam, Cstring),
 
@@ -757,71 +783,58 @@ end
     # int ncCamCloseImageParams(ImageParams imageParams);
     @call(:ncCamCloseImageParams, Status, (ImageParams, ), imageParams)
 
-#- # int ncCamRead(NcCam cam, NcImage** imageAcqu);
-#- @inline ncCamRead(cam::Cam, imageAcqu::Ptr{Ptr{Image}}) =
-#-     @call(:ncCamRead, Status,
-#-           (Cam, Ptr{Ptr{Image}}),
-#-           cam, imageAcqu)
+for (jf, cf, T) in (
 
-#- # int ncCamReadUInt32(NcCam cam, uint32_t *image);
-#- @inline ncCamReadUInt32(cam::Cam, image::Ptr{UInt32}) =
-#-     @call(:ncCamReadUInt32, Status,
-#-           (Cam, Ptr{UInt32}),
-#-           cam, image)
+    # int ncCamReadUInt32Chronological(NcCam cam, uint32_t* imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, :ncCamReadUInt32Chronological, UInt32),
 
-#- # int ncCamReadFloat(NcCam cam, float *image);
-#- @inline ncCamReadFloat(cam::Cam, image::Ptr{Cfloat}) =
-#-     @call(:ncCamReadFloat, Status,
-#-           (Cam, Ptr{Cfloat}),
-#-           cam, image)
+    # int ncCamReadFloatChronological(NcCam cam, float* imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, :ncCamReadFloatChronological, Cfloat),
 
-#- # int ncCamReadChronological(NcCam cam, NcImage** imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadChronological(cam::Cam, imageAcqu::Ptr{Ptr{Image}}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadChronological, Status,
-#-           (Cam, Ptr{Ptr{Image}}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+    # int ncCamReadUInt32ChronologicalNonBlocking(NcCam cam, uint32_t* imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, :ncCamReadUInt32ChronologicalNonBlocking, UInt32),
 
-#- # int ncCamReadUInt32Chronological(NcCam cam, uint32_t* imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadUInt32Chronological(cam::Cam, imageAcqu::Ptr{UInt32}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadUInt32Chronological, Status,
-#-           (Cam, Ptr{UInt32}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+    # int ncCamReadFloatChronologicalNonBlocking(NcCam cam, float* imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, :ncCamReadFloatChronologicalNonBlocking, Cfloat))
 
-#- # int ncCamReadFloatChronological(NcCam cam, float* imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadFloatChronological(cam::Cam, imageAcqu::Ptr{Cfloat}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadFloatChronological, Status,
-#-           (Cam, Ptr{Cfloat}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+    @eval begin
 
-#- # int ncCamReadChronologicalNonBlocking(NcCam cam, NcImage **imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadChronologicalNonBlocking(cam::Cam, imageAcqu::Ptr{Ptr{Image}}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadChronologicalNonBlocking, Status,
-#-           (Cam, Ptr{Ptr{Image}}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+        @inline function $jf(cam::Cam, img::Union{Ptr{$T},DenseMatrix{$T}})
+            nskip = Ref{Cint}()
+            @call($cf, Status, (Cam, Ptr{$T}, Ptr{Cint}),
+                  cam, img, nskip)
+            return nskip[]
+        end
 
-#- # int ncCamReadUInt32ChronologicalNonBlocking(NcCam cam, uint32_t* imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadUInt32ChronologicalNonBlocking(cam::Cam, imageAcqu::Ptr{UInt32}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadUInt32ChronologicalNonBlocking, Status,
-#-           (Cam, Ptr{UInt32}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+    end
+end
 
-#- # int ncCamReadFloatChronologicalNonBlocking(NcCam cam, float* imageAcqu, int* nbrImagesSkipped);
-#- @inline ncCamReadFloatChronologicalNonBlocking(cam::Cam, imageAcqu::Ptr{Cfloat}, nbrImagesSkipped::Ptr{Cint}) =
-#-     @call(:ncCamReadFloatChronologicalNonBlocking, Status,
-#-           (Cam, Ptr{Cfloat}, Ptr{Cint}),
-#-           cam, imageAcqu, nbrImagesSkipped)
+for (jf1, cf1, jf2, cf2, T) in (
 
-#- # int ncCamAllocUInt32Image(NcCam cam, uint32_t **image);
-#- @inline ncCamAllocUInt32Image(cam::Cam, image::Ptr{Ptr{UInt32}}) =
-#-     @call(:ncCamAllocUInt32Image, Status,
-#-           (Cam, Ptr{Ptr{UInt32}}),
-#-           cam, image)
+    # int ncCamAllocUInt32Image(NcCam cam, uint32_t **image);
+    # int ncCamFreeUInt32Image(uint32_t **image);
+    (:allocImage, :ncCamAllocUInt32Image, :freeImage, :ncCamFreeUInt32Image, UInt32),
 
-#- # int ncCamFreeUInt32Image(uint32_t **image);
-#- @inline ncCamFreeUInt32Image(image::Ptr{Ptr{UInt32}}) =
-#-     @call(:ncCamFreeUInt32Image, Status,
-#-           (Ptr{Ptr{UInt32}}, ),
-#-           image)
+    # FIXME: These functions are not in the C header but are documented.
+    # int ncCamAllocFloatImage(NcCam cam, uint32_t **image);
+    # int ncCamFreeFloatImage(uint32_t **image);
+    (:allocImage, :ncCamAllocFloatImage, :freeImage, :ncCamFreeFloatImage, Cfloat))
+
+    @eval begin
+
+        function $jf1(::Type{$T}, cam::Cam)
+            buf = Ref{Ptr{$T}}(0)
+            @call($cf1, Status, (Cam, Ptr{Ptr{$T}}), cam, buf)
+            return buf[]
+        end
+
+        function $jf2(ptr::Ptr{$T})
+            buf = Ref{Ptr{$T}}(ptr)
+            @call($cf2, Status, (Ptr{Ptr{$T}}, ), buf)
+        end
+
+    end
+end
 
 """
 ```julia
@@ -830,6 +843,9 @@ getOverrun(cam) -> ovr
 """ getOverrun
 
 for (jf, cf, T) in (
+    # int ncCamRead(NcCam cam, NcImage** imageAcqu);
+    (:read, :ncCamRead, Ptr{Image}),
+
     # int ncCamGetHeartbeat(NcCam cam, int *timeMs);
     (:getHeartbeat, :ncCamGetHeartbeat, Cint),
 
@@ -888,13 +904,19 @@ function getOverrun(cam::Cam)
 end
 
 for (jf, cf, T1, T2) in (
+
     # int ncCamGetSize(NcCam cam, int *width, int *height);
     (:getSize, :ncCamGetSize, Cint, Cint),
 
     # int ncCamGetMaxSize(NcCam cam, int *width, int *height);
     (:getMaxSize, :ncCamGetMaxSize, Cint, Cint),
 
-    # int ncCamGetCalibratedEmGainRange(NcCam cam, int* calibratedEmGainMin, int* calibratedEmGainMax);
+    # int ncCamReadChronological(NcCam cam, NcImage** imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, :ncCamReadChronological, Ptr{Image}, Cint),
+
+    # int ncCamReadChronologicalNonBlocking(NcCam cam, NcImage **imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, :ncCamReadChronologicalNonBlocking, Ptr{Image}, Cint),
+
     (:getCalibratedEmGainRange, :ncCamGetCalibratedEmGainRange, Cint, Cint),
 
     # int ncCamGetCalibratedEmGainTempRange(NcCam cam, double* calibratedEmGainTempMin, double* calibratedEmGainTempMax);
@@ -933,29 +955,52 @@ for (jf, cf, T1, T2) in (
     end
 end
 
-#- # int ncCamSaveImage(NcCam cam, const NcImage* imageNc, const char* saveName, enum ImageFormat saveFormat, const char* addComments, int overwriteFlag);
-#- @inline ncCamSaveImage(cam::Cam, imageNc::Ptr{Image}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, addComments::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncCamSaveImage, Status,
-#-           (Cam, Ptr{Image}, Ptr{Cchar}, ImageFormat, Ptr{Cchar}, Cint),
-#-           cam, imageNc, saveName, saveFormat, addComments, overwriteFlag)
+for (cf, T) in (
+    # int ncCamSaveImage(NcCam cam, const NcImage* imageNc, const char* saveName, enum ImageFormat saveFormat, const char* addComments, int overwriteFlag);
+    (:ncCamSaveImage, Image),
+    # int ncCamSaveUInt32Image(NcCam cam, const uint32_t *imageNc, const char *saveName, enum ImageFormat saveFormat, const char *addComments, int overwriteFlag);
+    (:ncCamSaveUInt32Image, UInt32),
 
-#- # int ncCamSaveUInt32Image(NcCam cam, const uint32_t *imageNc, const char *saveName, enum ImageFormat saveFormat, const char *addComments, int overwriteFlag);
-#- @inline ncCamSaveUInt32Image(cam::Cam, imageNc::Ptr{UInt32}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, addComments::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncCamSaveUInt32Image, Status,
-#-           (Cam, Ptr{UInt32}, Ptr{Cchar}, ImageFormat, Ptr{Cchar}, Cint),
-#-           cam, imageNc, saveName, saveFormat, addComments, overwriteFlag)
+    # int ncCamSaveFloatImage(NcCam cam, const float *imageNc, const char *saveName, enum ImageFormat saveFormat, const char *addComments, int overwriteFlag);
+    (:ncCamSaveFloatImage, Cfloat))
 
-#- # int ncCamSaveFloatImage(NcCam cam, const float *imageNc, const char *saveName, enum ImageFormat saveFormat, const char *addComments, int overwriteFlag);
-#- @inline ncCamSaveFloatImage(cam::Cam, imageNc::Ptr{Cfloat}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, addComments::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncCamSaveFloatImage, Status,
-#-           (Cam, Ptr{Cfloat}, Ptr{Cchar}, ImageFormat, Ptr{Cchar}, Cint),
-#-           cam, imageNc, saveName, saveFormat, addComments, overwriteFlag)
+    @eval begin
 
-#- # int ncCamSaveImageEx(NcCam cam, const void * imageNc, const char* saveName, enum ImageFormat saveFormat, enum ImageDataType dataFormat, const char* addComments, int overwriteFlag);
-#- @inline ncCamSaveImageEx(cam::Cam, imageNc::Ptr{Void}, saveName::Ptr{Cchar}, saveFormat::ImageFormat, dataFormat::ImageDataType, addComments::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncCamSaveImageEx, Status,
-#-           (Cam, Ptr{Void}, Ptr{Cchar}, ImageFormat, ImageDataType, Ptr{Cchar}, Cint),
-#-           cam, imageNc, saveName, saveFormat, dataFormat, addComments, overwriteFlag)
+        function saveImage(cam::Cam, img::Ptr{$T},
+                           name::Name, saveFormat::ImageFormat,
+                           comments::Name, overwrite::Bool)
+            @call($cf, Status,
+                  (Cam, Ptr{$T}, Cstring, ImageFormat, Cstring, Cint),
+                  cam, img, name, saveFormat, comments, overwrite)
+        end
+
+    end
+end
+
+function saveImage(cam::Cam, image::Ptr{Void}, name::Name,
+                   saveFormat::ImageFormat, dataFormat::ImageDataType,
+                   comments::Name, overwrite::Bool) <:PixelTypes
+    # int ncCamSaveImageEx(NcCam cam, const void * imageNc,
+    #                      const char* saveName,
+    #                      enum ImageFormat saveFormat,
+    #                      enum ImageDataType dataFormat,
+    #                      const char* addComments, int overwriteFlag);
+    @call(:ncCamSaveImageEx, Status,
+          (Cam, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cstring, Cint),
+          cam, image, name, saveFormat, dataFormat, comments, overwrite)
+end
+
+function saveImage(cam::Cam, image::Ptr{T}, name::Name,
+                   saveFormat::ImageFormat, comments::Name,
+                   overwrite::Bool) where {T<:Union{UInt64}}
+    saveImage(cam, Ptr{Void}(image), name, saveFormat, getPixelType(T),
+              comments, overwrite)
+end
+
+function saveImage(cam::Cam, image::DenseMatrix{<:PixelTypes}, name::Name,
+                   saveFormat::ImageFormat, comments::Name, overwrite::Bool)
+    saveImage(cam, pointer(image), name, saveFormat, comments, overwrite)
+end
 
 #- # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName, enum ImageFormat saveFormat, int imagesPerCubes, const char *addComments, int nbrOfCubes, int overwriteFlag);
 #- @inline ncCamStartSaveAcquisition(cam::Cam, saveName::Ptr{Cchar}, saveFormat::ImageFormat, imagesPerCubes::Cint, addComments::Ptr{Cchar}, nbrOfCubes::Cint, overwriteFlag::Cint) =

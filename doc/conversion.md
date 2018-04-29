@@ -134,7 +134,7 @@ and the corresponding Julia methods.
 | ncGrabGetHeartbeat                       | getHeartbeat                        |
 | ncGrabStart                              | start                               |
 | ncGrabAbort                              | abort                               |
-| ncGrabRead                               |                                     |
+| ncGrabRead                               | read                                |
 | ncGrabReadChronological                  |                                     |
 | ncGrabReadChronologicalNonBlocking       |                                     |
 | ncGrabOpenImageParams                    | open                                |
@@ -148,8 +148,8 @@ and the corresponding Julia methods.
 | ncGrabGetTimeout                         | getTimeout                          |
 | ncGrabSetSize                            | setSize                             |
 | ncGrabGetSize                            | getSize                             |
-| ncGrabSaveImage                          |                                     |
-| ncGrabSaveImageEx                        |                                     |
+| ncGrabSaveImage                          | saveImage                           |
+| ncGrabSaveImageEx                        | saveImage                           |
 | ncGrabStartSaveAcquisition               |                                     |
 | ncGrabStopSaveAcquisition                | stopSaveAcquisition                 |
 | ncGrabSaveImageSetHeaderCallback         |                                     |
@@ -157,8 +157,8 @@ and the corresponding Julia methods.
 | ncGrabSaveImageCloseCallback             |                                     |
 | ncGrabSaveImageSetCompressionType        |                                     |
 | ncGrabSaveImageGetCompressionType        |                                     |
-| ncGrabSaveParam                          |                                     |
-| ncGrabLoadParam                          |                                     |
+| ncGrabSaveParam                          | saveParam                           |
+| ncGrabLoadParam                          | loadParam                           |
 | ncGrabSaveParamSetHeaderCallback         |                                     |
 | ncGrabLoadParamSetHeaderCallback         |                                     |
 | ncGrabSetTimestampMode                   | setTimestampMode                    |
@@ -238,17 +238,17 @@ and the corresponding Julia methods.
 | ncCamOpenImageParams                     | open                                |
 | ncCamGetImageParams                      | getImageParams                      |
 | ncCamCloseImageParams                    |                                     |
-| ncCamRead                                |                                     |
-| ncCamReadUInt32                          |                                     |
-| ncCamReadFloat                           |                                     |
-| ncCamReadChronological                   |                                     |
-| ncCamReadUInt32Chronological             |                                     |
-| ncCamReadFloatChronological              |                                     |
-| ncCamReadChronologicalNonBlocking        |                                     |
-| ncCamReadUInt32ChronologicalNonBlocking  |                                     |
-| ncCamReadFloatChronologicalNonBlocking   |                                     |
-| ncCamAllocUInt32Image                    |                                     |
-| ncCamFreeUInt32Image                     |                                     |
+| ncCamRead                                | read                                |
+| ncCamReadUInt32                          | read                                |
+| ncCamReadFloat                           | read                                |
+| ncCamReadChronological                   | readChronological                   |
+| ncCamReadUInt32Chronological             | readChronological                   |
+| ncCamReadFloatChronological              | readChronological                   |
+| ncCamReadChronologicalNonBlocking        | readChronologicalNonBlocking        |
+| ncCamReadUInt32ChronologicalNonBlocking  | readChronologicalNonBlocking        |
+| ncCamReadFloatChronologicalNonBlocking   | readChronologicalNonBlocking        |
+| ncCamAllocUInt32Image                    | allocImage                          |
+| ncCamFreeUInt32Image                     | freeImage                           |
 | ncCamFlushReadQueues                     | flushReadQueues                     |
 | ncCamGetOverrun                          | getOverrun                          |
 | ncCamGetNbrDroppedImages                 | getNbrDroppedImages                 |
@@ -259,9 +259,9 @@ and the corresponding Julia methods.
 | ncCamGetMaxSize                          | getMaxSize                          |
 | ncCamGetOverscanLines                    | getOverscanLines                    |
 | ncCamGetFrameLatency                     | getFrameLatency                     |
-| ncCamSaveImage                           |                                     |
-| ncCamSaveUInt32Image                     |                                     |
-| ncCamSaveFloatImage                      |                                     |
+| ncCamSaveImage                           | saveImage                           |
+| ncCamSaveUInt32Image                     | saveImage                           |
+| ncCamSaveFloatImage                      | saveImage                           |
 | ncCamSaveImageEx                         |                                     |
 | ncCamStartSaveAcquisition                |                                     |
 | ncCamStopSaveAcquisition                 | stopSaveAcquisition                 |
@@ -279,8 +279,8 @@ and the corresponding Julia methods.
 | ncCamGetCtrlTimestamp                    | getCtrlTimestamp                    |
 | ncCamGetHostSystemTimestamp              | getHostSystemTimestamp              |
 | ncCamParamAvailable                      |                                     |
-| ncCamSaveParam                           |                                     |
-| ncCamLoadParam                           |                                     |
+| ncCamSaveParam                           | saveParam                           |
+| ncCamLoadParam                           | loadParam                           |
 | ncCamSaveParamSetHeaderCallback          |                                     |
 | ncCamLoadParamSetHeaderCallback          |                                     |
 | ncCamSetReadoutMode                      | setReadoutMode                      |
