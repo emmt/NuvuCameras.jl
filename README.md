@@ -13,9 +13,10 @@ Examples can be find in the [`examples`](examples/) directory.
 
 ## Low-level API
 
-The low-level API provides methods defined to directly call the C functions
-of the Nüvü Camēras SDK.  There are however some simplifications to make
-them easy to use:
+The low-level API provides methods defined to directly call the C functions of
+the Nüvü Camēras SDK.  There are however some conventions applied to make the
+low-level interface benefit from Julia multiple dispatching and be easier to
+use than the C API:
 
 * As all C functions of the Nüvü Camēras SDK, this status is used to assert
   the success of the call.  In case of failure, a `NuvuCameraError`

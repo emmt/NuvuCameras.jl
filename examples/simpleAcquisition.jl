@@ -1,14 +1,14 @@
 #
-# simpleacquisition.jl -
+# simpleAcquisition.jl -
 #
-# This application is the simplest one from the available example.  It shows
-# the user how to start the acquisition of multiples images, how to read the
-# images and to detect if an overrun or even a timeout happened.
+# This is the simplest one from the available examples.  It shows the user how
+# to start the acquisition of multiples images, how to read the images and to
+# detect if an overrun or even a timeout happened.
 #
-# This function also explains how to save acquired images.
+# This example also explains how to save acquired images.
 #
-# Also, please refer to the "Nuvu Cameras SDK.pdf" help file in order to get
-# a better description of each function used in this example.
+
+module SimpleAcquisition
 
 # In this example, we want to use the low-level interface as it is the closest
 # to the C API.
@@ -72,7 +72,7 @@ function main()
     println("You just acquired one image, by pressing Enter you will acquire 15 new images")
     readline(STDIN)
 
-    # Opens the shutter for the acquisition
+    # Opens the shutter for the acquisition.
     NC.setShutterMode(myCam, NC.OPEN)
 
     # Launches 15 acquisitions on the frame grabber and requests 15 images from
@@ -109,5 +109,12 @@ function main()
     # Closes the acquisition channel no longer in use.
     NC.close(myCam)
 
-    println("The program ended")
+    if is_windows()
+	println("\nHit the Return key to close the command window.")
+        readline(STDIN)
+    else
+	println("The program ended.")
+    end
 end
+
+end # module
