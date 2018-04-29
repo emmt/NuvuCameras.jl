@@ -117,7 +117,7 @@ for (jf, cf, T) in (
 
     @eval begin
 
-        function $cf(ctrlList::CtrlList)
+        function $jf(ctrlList::CtrlList)
             value = Ref{$T}()
             @call($cf, Status, (CtrlList, Ptr{$T}), ctrlList, value)
             return value[]
@@ -145,7 +145,7 @@ for (jf, cf, T) in (
 
     @eval begin
 
-        function $cf(ctrlList::CtrlList, index::Integer)
+        function $jf(ctrlList::CtrlList, index::Integer)
             value = Ref{$T}()
             @call($cf, Status, (CtrlList, Cint, Ptr{$T}),
                   ctrlList, index, value)
@@ -215,7 +215,7 @@ for (jf, cf, T1, T2) in (
 
     @eval begin
 
-        function $cf(ctrlList::CtrlList, index::Integer)
+        function $jf(ctrlList::CtrlList, index::Integer)
             val1 = Ref{$T1}()
             val2 = Ref{$T2}()
             @call($cf, Status, (CtrlList, Cint, Ptr{$T1}, Ptr{$T2}),
@@ -1150,7 +1150,7 @@ for (jf, cf, T) in (
     (:getExternalShutterMode, :ncCamGetExternalShutterMode, ShutterMode),
 
     # int ncCamGetExternalShutterDelay(NcCam cam, int cameraRequest, double* externalShutterDelay);
-    (:ncCamGetExternalShutterDelay, :ncCamGetExternalShutterDelay, Cdouble),
+    (:getExternalShutterDelay, :ncCamGetExternalShutterDelay, Cdouble),
 
     # int ncCamGetFirePolarity(NcCam cam, int cameraRequest, enum ExtPolarity* firePolarity);
     (:getFirePolarity, :ncCamGetFirePolarity, ExtPolarity),
