@@ -66,6 +66,10 @@ function fetcharray(ptr::Ptr{T}, n::Integer) where {T}
     return arr
 end
 
+# Round timeout to nearest integer.
+setTimeout(tgt::Union{Cam,Grab}, ms::Real) =
+    setTimeout(tgt, rount(Cint, ms))
+
 #- # int ncWriteFileHeader(NcImageSaved *currentFile, enum HeaderDataType dataType, const char *name, const void *value, const char *comment);
 #- @inline ncWriteFileHeader(currentFile::ImageSaved, dataType::HeaderDataType, name::Ptr{Cchar}, value::Ptr{Void}, comment::Ptr{Cchar}) =
 #-     @call(:ncWriteFileHeader, Status,
