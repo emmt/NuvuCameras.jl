@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 253 have been currently interfaced.
+# 266 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -87,6 +87,9 @@ setTimeout(tgt::Union{Cam,Grab}, ms::Real) =
 #-     @call(:ncImageGetFileFormat, Status,
 #-           (ImageSaved, Ptr{ImageFormat}),
 #-           image, format)
+
+#------------------------------------------------------------------------------
+# CONTROLLER LISTING FUNCTIONS
 
 function open(::Type{CtrlList}, basic::Bool = false)
     ctrlList = Ref{CtrlList}()
@@ -1327,71 +1330,162 @@ end
 #-           (Cam, Ptr{Cdouble}, Ptr{Cint}),
 #-           cam, safeTemperature, dontCare)
 
-#- # int ncCamSetCropMode( NcCam cam, enum CropMode mode, int paddingPixelsMinimumX, int paddingPixelsMinimumY );
-#- @inline ncCamSetCropMode(cam::Cam, mode::CropMode, paddingPixelsMinimumX::Cint, paddingPixelsMinimumY::Cint) =
-#-     @call(:ncCamSetCropMode, Status,
-#-           (Cam, CropMode, Cint, Cint),
-#-           cam, mode, paddingPixelsMinimumX, paddingPixelsMinimumY)
+#------------------------------------------------------------------------------
+# CROP MODE SOLUTIONS
 
-#- # int ncCamGetCropMode( NcCam cam, enum CropMode* mode, int* paddingPixelsMinimumX, int* paddingPixelsMinimumY, float* figureOfMerit);
-#- @inline ncCamGetCropMode(cam::Cam, mode::Ptr{CropMode}, paddingPixelsMinimumX::Ptr{Cint}, paddingPixelsMinimumY::Ptr{Cint}, figureOfMerit::Ptr{Cfloat}) =
-#-     @call(:ncCamGetCropMode, Status,
-#-           (Cam, Ptr{CropMode}, Ptr{Cint}, Ptr{Cint}, Ptr{Cfloat}),
-#-           cam, mode, paddingPixelsMinimumX, paddingPixelsMinimumY, figureOfMerit)
+function setCropMode(cam::Cam, mode::CropMode, paddingPixelsMinimumX::Integer,
+                     paddingPixelsMinimumY::Integer)
+    # int ncCamSetCropMode(NcCam cam, enum CropMode mode,
+    #                      int paddingPixelsMinimumX,
+    #                      int paddingPixelsMinimumY);
+    @call(:ncCamSetCropMode, Status, (Cam, CropMode, Cint, Cint),
+          cam, mode, paddingPixelsMinimumX, paddingPixelsMinimumY)
+end
 
-#- # int ncCropModeSolutionsOpen( NcCropModeSolutions* solutionSet, int cropWidth, int cropHeight, enum CropMode mode, int paddingPixelsMinimumX, int paddingPixelsMinimumY, NcCam cam);
-#- @inline ncCropModeSolutionsOpen(solutionSet::Ptr{CropModeSolutions}, cropWidth::Cint, cropHeight::Cint, mode::CropMode, paddingPixelsMinimumX::Cint, paddingPixelsMinimumY::Cint, cam::Cam) =
-#-     @call(:ncCropModeSolutionsOpen, Status,
-#-           (Ptr{CropModeSolutions}, Cint, Cint, CropMode, Cint, Cint, Cam),
-#-           solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX, paddingPixelsMinimumY, cam)
+function getCropMode(cam::Cam)
+    mode = Ref{CropMode}()
+    paddingPixelsMinimumX = Ref{Cint}()
+    paddingPixelsMinimumY = Ref{Cint}()
+    figureOfMerit = Ref{Cfloat}()
+    # int ncCamGetCropMode(NcCam cam, enum CropMode* mode,
+    #                      int* paddingPixelsMinimumX,
+    #                      int* paddingPixelsMinimumY,
+    #                      float* figureOfMerit);
+    @call(:ncCamGetCropMode, Status,
+          (Cam, Ptr{CropMode}, Ptr{Cint}, Ptr{Cint}, Ptr{Cfloat}),
+          cam, mode, paddingPixelsMinimumX, paddingPixelsMinimumY,
+          figureOfMerit)
+    return (mode[], paddingPixelsMinimumX[], paddingPixelsMinimumY[],
+            figureOfMerit[])
+end
 
-#- # int ncCropModeSolutionsRefresh( NcCropModeSolutions solutionSet );
-#- @inline ncCropModeSolutionsRefresh(solutionSet::CropModeSolutions) =
-#-     @call(:ncCropModeSolutionsRefresh, Status,
-#-           (CropModeSolutions, ),
-#-           solutionSet)
+function open(::Type{CropModeSolutions}, cropWidth::Integer,
+              cropHeight::Integer, mode::CropMode,
+              paddingPixelsMinimumX::Integer, paddingPixelsMinimumY::Integer,
+              cam::Cam)
+    solutionSet = Ref{CropModeSolutions}()
+    # int ncCropModeSolutionsOpen(NcCropModeSolutions* solutionSet,
+    #                             int cropWidth, int cropHeight,
+    #                             enum CropMode mode, int paddingPixelsMinimumX,
+    #                             int paddingPixelsMinimumY, NcCam cam);
+    @call(:ncCropModeSolutionsOpen, Status,
+          (Ptr{CropModeSolutions}, Cint, Cint, CropMode, Cint, Cint, Cam),
+          solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX,
+          paddingPixelsMinimumY, cam)
+    return solutionSet[]
+end
 
-#- # int ncCropModeSolutionsSetParameters( NcCropModeSolutions solutionSet, int cropWidth, int cropHeight, enum CropMode mode, int paddingPixelsMinimumX, int paddingPixelsMinimumY);
-#- @inline ncCropModeSolutionsSetParameters(solutionSet::CropModeSolutions, cropWidth::Cint, cropHeight::Cint, mode::CropMode, paddingPixelsMinimumX::Cint, paddingPixelsMinimumY::Cint) =
-#-     @call(:ncCropModeSolutionsSetParameters, Status,
-#-           (CropModeSolutions, Cint, Cint, CropMode, Cint, Cint),
-#-           solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX, paddingPixelsMinimumY)
+refresh(solutionSet::CropModeSolutions) =
+    # int ncCropModeSolutionsRefresh(NcCropModeSolutions solutionSet);
+    @call(:ncCropModeSolutionsRefresh, Status,
+          (CropModeSolutions, ), solutionSet)
 
-#- # int ncCropModeSolutionsGetParameters( NcCropModeSolutions solutionSet, int* cropWidth, int* cropHeight, enum CropMode* mode, int* paddingPixelsMinimumX, int* paddingPixelsMinimumY);
-#- @inline ncCropModeSolutionsGetParameters(solutionSet::CropModeSolutions, cropWidth::Ptr{Cint}, cropHeight::Ptr{Cint}, mode::Ptr{CropMode}, paddingPixelsMinimumX::Ptr{Cint}, paddingPixelsMinimumY::Ptr{Cint}) =
-#-     @call(:ncCropModeSolutionsGetParameters, Status,
-#-           (CropModeSolutions, Ptr{Cint}, Ptr{Cint}, Ptr{CropMode}, Ptr{Cint}, Ptr{Cint}),
-#-           solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX, paddingPixelsMinimumY)
+function setParameters(solutionSet::CropModeSolutions, cropWidth::Integer,
+                       cropHeight::Integer, mode::CropMode,
+                       paddingPixelsMinimumX::Integer,
+                       paddingPixelsMinimumY::Integer)
+    # int ncCropModeSolutionsSetParameters(NcCropModeSolutions solutionSet,
+    #                                      int cropWidth, int cropHeight,
+    #                                      enum CropMode mode,
+    #                                      int paddingPixelsMinimumX,
+    #                                      int paddingPixelsMinimumY);
+    @call(:ncCropModeSolutionsSetParameters, Status,
+          (CropModeSolutions, Cint, Cint, CropMode, Cint, Cint),
+          solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX,
+          paddingPixelsMinimumY)
+end
 
-#- # int ncCropModeSolutionsGetTotal( NcCropModeSolutions solutionSet, int* totalNbrSolutions);
-#- @inline ncCropModeSolutionsGetTotal(solutionSet::CropModeSolutions, totalNbrSolutions::Ptr{Cint}) =
-#-     @call(:ncCropModeSolutionsGetTotal, Status,
-#-           (CropModeSolutions, Ptr{Cint}),
-#-           solutionSet, totalNbrSolutions)
+function getParameters(solutionSet::CropModeSolutions)
+    cropWidth = Ref{Cint}()
+    cropHeight = Ref{Cint}()
+    mode = Ref{CropMode}()
+    paddingPixelsMinimumX = Ref{Cint}()
+    paddingPixelsMinimumY = Ref{Cint}()
+    # int ncCropModeSolutionsGetParameters(NcCropModeSolutions solutionSet,
+    #                                      int* cropWidth, int* cropHeight,
+    #                                      enum CropMode* mode,
+    #                                      int* paddingPixelsMinimumX,
+    #                                      int* paddingPixelsMinimumY);
+    @call(:ncCropModeSolutionsGetParameters, Status,
+          (CropModeSolutions, Ptr{Cint}, Ptr{Cint}, Ptr{CropMode},
+           Ptr{Cint}, Ptr{Cint}),
+          solutionSet, cropWidth, cropHeight, mode, paddingPixelsMinimumX,
+          paddingPixelsMinimumY)
+    return (cropWidth[], cropHeight[], mode[], paddingPixelsMinimumX[],
+            paddingPixelsMinimumY[])
+end
 
-#- # int ncCropModeSolutionsGetResult( NcCropModeSolutions solutionSet, unsigned int solutionIndex, float* figureOfMerit, int* startX_min, int* startX_max, int* startY_min, int* startY_max);
-#- @inline ncCropModeSolutionsGetResult(solutionSet::CropModeSolutions, solutionIndex::Cuint, figureOfMerit::Ptr{Cfloat}, startX_min::Ptr{Cint}, startX_max::Ptr{Cint}, startY_min::Ptr{Cint}, startY_max::Ptr{Cint}) =
-#-     @call(:ncCropModeSolutionsGetResult, Status,
-#-           (CropModeSolutions, Cuint, Ptr{Cfloat}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-#-           solutionSet, solutionIndex, figureOfMerit, startX_min, startX_max, startY_min, startY_max)
+function getTotal(solutionSet::CropModeSolutions)
+    totalNbrSolutions = Ref{Cint}()
+    # int ncCropModeSolutionsGetTotal(NcCropModeSolutions solutionSet,
+    #                                 int* totalNbrSolutions);
+    @call(:ncCropModeSolutionsGetTotal, Status,
+          (CropModeSolutions, Ptr{Cint}), solutionSet, totalNbrSolutions)
+    return totalNbrSolutions[]
+end
 
-#- # int ncCropModeSolutionsGetLocationRanges( NcCropModeSolutions solutionSet, int *offsetX_min, int *offsetX_max, int *offsetY_min, int *offsetY_max);
-#- @inline ncCropModeSolutionsGetLocationRanges(solutionSet::CropModeSolutions, offsetX_min::Ptr{Cint}, offsetX_max::Ptr{Cint}, offsetY_min::Ptr{Cint}, offsetY_max::Ptr{Cint}) =
-#-     @call(:ncCropModeSolutionsGetLocationRanges, Status,
-#-           (CropModeSolutions, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-#-           solutionSet, offsetX_min, offsetX_max, offsetY_min, offsetY_max)
+function getResult(solutionSet::CropModeSolutions, solutionIndex::Integer)
+    figureOfMerit = Ref{Cfloat}()
+    startX_min = Ref{Cint}()
+    startX_max = Ref{Cint}()
+    startY_min = Ref{Cint}()
+    startY_max = Ref{Cint}()
+    # int ncCropModeSolutionsGetResult(NcCropModeSolutions solutionSet,
+    #                                  unsigned int solutionIndex,
+    #                                  float* figureOfMerit,
+    #                                  int* startX_min, int* startX_max,
+    #                                  int* startY_min, int* startY_max);
+    @call(:ncCropModeSolutionsGetResult, Status,
+          (CropModeSolutions, Cuint, Ptr{Cfloat}, Ptr{Cint}, Ptr{Cint},
+           Ptr{Cint}, Ptr{Cint}),
+          solutionSet, solutionIndex, figureOfMerit, startX_min, startX_max,
+          startY_min, startY_max)
+    return (figureOfMerit[], startX_min[], startX_max[],
+            startY_min[], startY_max[])
+end
 
-#- # int ncCropModeSolutionsGetResultAtLocation( NcCropModeSolutions solutionSet, int offsetX, int offsetY, float *figureOfMerit, int *startX_min, int *startX_max, int *startY_min, int *startY_max);
-#- @inline ncCropModeSolutionsGetResultAtLocation(solutionSet::CropModeSolutions, offsetX::Cint, offsetY::Cint, figureOfMerit::Ptr{Cfloat}, startX_min::Ptr{Cint}, startX_max::Ptr{Cint}, startY_min::Ptr{Cint}, startY_max::Ptr{Cint}) =
-#-     @call(:ncCropModeSolutionsGetResultAtLocation, Status,
-#-           (CropModeSolutions, Cint, Cint, Ptr{Cfloat}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-#-           solutionSet, offsetX, offsetY, figureOfMerit, startX_min, startX_max, startY_min, startY_max)
+function getLocationRanges(solutionSet::CropModeSolutions)
+    offsetX_min = Ref{Cint}()
+    offsetX_max = Ref{Cint}()
+    offsetY_min = Ref{Cint}()
+    offsetY_max = Ref{Cint}()
+    # int ncCropModeSolutionsGetLocationRanges(NcCropModeSolutions solutionSet,
+    #                                          int *offsetX_min,
+    #                                          int *offsetX_max,
+    #                                          int *offsetY_min,
+    #                                          int *offsetY_max);
+    @call(:ncCropModeSolutionsGetLocationRanges, Status,
+          (CropModeSolutions, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+          solutionSet, offsetX_min, offsetX_max, offsetY_min, offsetY_max)
+    return (offsetX_min[], offsetX_max[], offsetY_min[], offsetY_max[])
+end
 
-#- # int ncCropModeSolutionsClose( NcCropModeSolutions solutionSet );
-#- @inline ncCropModeSolutionsClose(solutionSet::CropModeSolutions) =
-#-     @call(:ncCropModeSolutionsClose, Status,
-#-           (CropModeSolutions, ),
-#-           solutionSet)
+function getResultAtLocation(solutionSet::CropModeSolutions,
+                             offsetX::Integer, offsetY::Integer)
+    figureOfMerit = Ref{Cfloat}()
+    startX_min = Ref{Cint}()
+    startX_max = Ref{Cint}()
+    startY_min = Ref{Cint}()
+    startY_max = Ref{Cint}()
+    # int ncCropModeSolutionsGetResultAtLocation(NcCropModeSolutions solutionSet,
+    #                                            int offsetX, int offsetY,
+    #                                            float *figureOfMerit,
+    #                                            int *startX_min, int *startX_max,
+    #                                            int *startY_min, int *startY_max);
+    @call(:ncCropModeSolutionsGetResultAtLocation, Status,
+          (CropModeSolutions, Cint, Cint, Ptr{Cfloat}, Ptr{Cint}, Ptr{Cint},
+           Ptr{Cint}, Ptr{Cint}),
+          solutionSet, offsetX, offsetY, figureOfMerit, startX_min, startX_max,
+          startY_min, startY_max)
+    return (figureOfMerit[], startX_min[], startX_max[],
+            startY_min[], startY_max[])
+end
+
+close(solutionSet::CropModeSolutions) =
+    # int ncCropModeSolutionsClose(NcCropModeSolutions solutionSet);
+    @call(:ncCropModeSolutionsClose, Status, (CropModeSolutions,), solutionSet)
+
+#------------------------------------------------------------------------------
 
 #- # int ncCamCreateBias(NcCam cam, int nbrImages, enum ShutterMode biasShuttermode);
 #- @inline ncCamCreateBias(cam::Cam, nbrImages::Cint, biasShuttermode::ShutterMode) =
