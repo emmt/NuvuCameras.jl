@@ -130,6 +130,12 @@ const CROP_MODE_ENABLE_MX = CROP_MODE_ENABLE_XY
       IMG_ULONG, # uint 64 bit
       IMG_FLOAT) # 32 bit float
 
+const PixelTypes = Union{UInt16,UInt32,UInt64,Cfloat}
+getPixelType(::Type{UInt16}) = IMG
+getPixelType(::Type{UInt32}) = IMG_UINT
+getPixelType(::Type{UInt64}) = IMG_ULONG
+getPixelType(::Type{Cfloat}) = IMG_FLOAT
+
 @enum(HeaderDataType::Cint, INT, DOUBLE, STRING)
 
 @enum(ImageCompression::Cint, NO_COMPRESSION = 0, GZIP)
