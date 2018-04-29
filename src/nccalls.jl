@@ -70,23 +70,72 @@ end
 setTimeout(tgt::Union{Cam,Grab}, ms::Real) =
     setTimeout(tgt, rount(Cint, ms))
 
-#- # int ncWriteFileHeader(NcImageSaved *currentFile, enum HeaderDataType dataType, const char *name, const void *value, const char *comment);
-#- @inline ncWriteFileHeader(currentFile::ImageSaved, dataType::HeaderDataType, name::Ptr{Cchar}, value::Ptr{Void}, comment::Ptr{Cchar}) =
-#-     @call(:ncWriteFileHeader, Status,
-#-           (ImageSaved, HeaderDataType, Ptr{Cchar}, Ptr{Void}, Ptr{Cchar}),
-#-           currentFile, dataType, name, value, comment)
+function writeFileHeader(currentFile::ImageSaved, dataType::HeaderDataType,
+                         name::Name, value::Ptr{Void}, comment::Name)
+    # int ncWriteFileHeader(NcImageSaved *currentFile,
+    #                       enum HeaderDataType dataType, const char *name,
+    #                       const void *value, const char *comment);
+    @call(:ncWriteFileHeader, Status,
+          (ImageSaved, HeaderDataType, Cstring, Ptr{Void}, Cstring),
+          currentFile, dataType, name, value, comment)
+end
 
-#- # int ncReadFileHeader(NcImageSaved *currentFile, enum HeaderDataType dataType, const char *name, const void *value);
-#- @inline ncReadFileHeader(currentFile::ImageSaved, dataType::HeaderDataType, name::Ptr{Cchar}, value::Ptr{Void}) =
-#-     @call(:ncReadFileHeader, Status,
-#-           (ImageSaved, HeaderDataType, Ptr{Cchar}, Ptr{Void}),
-#-           currentFile, dataType, name, value)
+function writeFileHeader(currentFile::ImageSaved, name::Name, value::Integer,
+                         comment::Name)
+    writeFileHeader(currentFile, INT, name, Ref{Cint}(value), comment)
+end
 
-#- # int ncImageGetFileFormat(NcImageSaved *image, enum ImageFormat * format);
-#- @inline ncImageGetFileFormat(image::ImageSaved, format::Ptr{ImageFormat}) =
-#-     @call(:ncImageGetFileFormat, Status,
-#-           (ImageSaved, Ptr{ImageFormat}),
-#-           image, format)
+function writeFileHeader(currentFile::ImageSaved, name::Name,
+                         value::Union{AbstractFloat,Rational,Irrational},
+                         comment::Name)
+    writeFileHeader(currentFile, DOUBLE, name, Ref{Cdouble}(value), comment)
+end
+
+function writeFileHeader(currentFile::ImageSaved, name::Name, value::Name,
+                         comment::Name)
+    @call(:ncWriteFileHeader, Status,
+          (ImageSaved, HeaderDataType, Cstring, Cstring, Cstring),
+          currentFile, STRING, name, value, comment)
+end
+
+readFileHeader(currentFile::ImageSaved, dataType::HeaderDataType, name::Name) =
+    readFileHeader(currentFile, Val{dataType}, name)
+
+# int ncReadFileHeader(NcImageSaved *currentFile, enum HeaderDataType dataType,
+#                      const char *name, const void *value);
+
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{INT}}, name::Name)
+    value = Ref{Cint}()
+    @call(:ncReadFileHeader, Status,
+          (ImageSaved, HeaderDataType, Cstring, Ptr{Cint}),
+          currentFile, INT, name, value)
+    return value[]
+end
+
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{DOUBLE}}, name::Name)
+    value = Ref{Cdouble}()
+    @call(:ncReadFileHeader, Status,
+          (ImageSaved, HeaderDataType, Cstring, Ptr{Cdouble}),
+          currentFile, DOUBLE, name, value)
+    return value[]
+end
+
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{STRING}}, name::Name)
+    buf = Array{Cchar}(1024) # FIXME: potential issue here
+    @call(:ncReadFileHeader, Status,
+          (ImageSaved, HeaderDataType, Cstring, Ptr{Cchar}),
+          currentFile, INT, name, buf)
+    buf[end] = 0
+    return unsafe_string(pointer(buf))
+end
+
+function getFileFormat(image::ImageSaved)
+    format = Ref{ImageFormat}()
+    # int ncImageGetFileFormat(NcImageSaved* image, enum ImageFormat* format);
+    @call(:ncImageGetFileFormat, Status, (ImageSaved, Ptr{ImageFormat}),
+          image, format)
+    return format[]
+end
 
 #------------------------------------------------------------------------------
 # CONTROLLER LISTING FUNCTIONS
