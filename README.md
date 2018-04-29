@@ -8,7 +8,7 @@
 
 This module implements Julia support for Nüvü Camēras.
 
-
+Examples can be find in the [`examples`](examples/) directory.
 
 
 ## Low-level API
@@ -48,7 +48,7 @@ them easy to use:
   functions taking references of one or more returned values are wrapped so
   as to return these values.
 
-For code conversionor finding the relevant documentation, the C functions
+For code conversion or finding the relevant documentation, the C functions
 and corresponding Julia methods are listed [here](doc/conversion.md).
 
 
