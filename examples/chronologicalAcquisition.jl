@@ -85,7 +85,7 @@ function main(imageAcquisition::Integer = 40)
     # Close the shutter, now that the acquistion is complete.
     NC.setShutterMode(myCam, NC.CLOSE)
 
-    # Closes the acquisition channel no longer in use
+    # Closes the acquisition channel no longer in use.
     NC.close(myCam)
 
     if is_windows()

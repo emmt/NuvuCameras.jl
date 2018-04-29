@@ -10,6 +10,7 @@ end
 # We first try to load the examples.
 include("../examples/simpleAcquisition.jl")
 include("../examples/chronologicalAcquisition.jl")
+include("../examples/timedAcquisition.jl")
 
 # write your own tests here
 #@test 1 == 1

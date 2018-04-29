@@ -65,7 +65,7 @@ function main()
     # Closes the shutter, now that the acquistion is complete.
     NC.setShutterMode(myCam, NC.CLOSE)
 
-    # Saves the image acquired
+    # Saves the image acquired.
     NC.saveImage(myCam, myImage, "FirstImage", saveFormat,
                  "This is my first image grabbed", true)
 

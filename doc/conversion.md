@@ -262,7 +262,7 @@ and the corresponding Julia methods.
 | ncCamSaveImage                           | saveImage                           |
 | ncCamSaveUInt32Image                     | saveImage                           |
 | ncCamSaveFloatImage                      | saveImage                           |
-| ncCamSaveImageEx                         |                                     |
+| ncCamSaveImageEx                         | saveImage                           |
 | ncCamStartSaveAcquisition                |                                     |
 | ncCamStopSaveAcquisition                 | stopSaveAcquisition                 |
 | ncCamSaveImageSetHeaderCallback          |                                     |
