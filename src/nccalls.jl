@@ -292,7 +292,7 @@ for (jf, Tj, cf, Tc) in (
     (:setTimeout, Integer, :ncGrabSetTimeout, Cint),
 
     # int ncGrabSetTimestampMode(NcGrab grab, enum TimestampMode timestampMode);
-    (:setTimeout, TimestampMode, :ncGrabSetTimeout, TimestampMode),
+    (:setTimestampMode, TimestampMode, :ncGrabSetTimestampMode, TimestampMode),
 
     # int ncGrabSetSerialTimeout(NcGrab grab, int serialTimeout);
     (:setSerialTimeout, Integer, :ncGrabSetSerialTimeout, Cint),
@@ -656,7 +656,7 @@ for (jf, Tj, cf, Tc) in (
     (:setTimeout, Integer, :ncCamSetTimeout, Cint),
 
     # int ncCamSetTimestampMode(NcCam cam, enum TimestampMode timestampMode);
-    (:setTimeout, TimestampMode, :ncCamSetTimeout, TimestampMode),
+    (:setTimestampMode, TimestampMode, :ncCamSetTimestampMode, TimestampMode),
 
     # int ncCamLoadParam(NcCam cam, const char *saveName);
     (:loadParam, Name, :ncCamLoadParam, Cstring),
