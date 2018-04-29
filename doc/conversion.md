@@ -93,27 +93,30 @@ and the corresponding Julia methods.
 | ncWriteFileHeader                        |                                     |
 | ncReadFileHeader                         |                                     |
 | ncImageGetFileFormat                     |                                     |
-| ncControllerListOpen                     |                                     |
-| ncControllerListOpenBasic                |                                     |
-| ncControllerListFree                     |                                     |
-| ncControllerListGetSize                  |                                     |
-| ncControllerListGetSerial                |                                     |
-| ncControllerListGetModel                 |                                     |
-| ncControllerListGetPortUnit              |                                     |
-| ncControllerListGetPortChannel           |                                     |
-| ncControllerListGetPortInterface         |                                     |
-| ncControllerListGetUniqueID              |                                     |
-| ncControllerListGetFullSizeSize          |                                     |
-| ncControllerListGetDetectorSize          |                                     |
-| ncControllerListGetDetectorType          |                                     |
-| ncControllerListGetFreePortCount         |                                     |
-| ncControllerListGetFreePortUnit          |                                     |
-| ncControllerListGetFreePortChannel       |                                     |
-| ncControllerListGetFreePortInterface     |                                     |
-| ncControllerListGetFreePortUniqueID      |                                     |
-| ncControllerListGetFreePortReason        |                                     |
-| ncControllerListGetPluginCount           |                                     |
-| ncControllerListGetPluginName            |                                     |
+
+| C Function                               | Julia Method                        |
+| :--------------------------------------- | :---------------------------------- |
+| ncControllerListOpen                     | open                                |
+| ncControllerListOpenBasic                | open                                |
+| ncControllerListFree                     | close                               |
+| ncControllerListGetSize                  | getSize                             |
+| ncControllerListGetSerial                | getSerial                           |
+| ncControllerListGetModel                 | getModel                            |
+| ncControllerListGetPortUnit              | getPortUnit                         |
+| ncControllerListGetPortChannel           | getPortChannel                      |
+| ncControllerListGetPortInterface         | getPortInterface                    |
+| ncControllerListGetUniqueID              | getUniqueID                         |
+| ncControllerListGetFullSizeSize          | getFullSizeSize                     |
+| ncControllerListGetDetectorSize          | getDetectorSize                     |
+| ncControllerListGetDetectorType          | getDetectorType                     |
+| ncControllerListGetFreePortCount         | getFreePortCount                    |
+| ncControllerListGetFreePortUnit          | getFreePortUnit                     |
+| ncControllerListGetFreePortChannel       | getFreePortChannel                  |
+| ncControllerListGetFreePortInterface     | getFreePortInterface                |
+| ncControllerListGetFreePortUniqueID      | getFreePortUniqueID                 |
+| ncControllerListGetFreePortReason        | getFreePortReason                   |
+| ncControllerListGetPluginCount           | getPluginCount                      |
+| ncControllerListGetPluginName            | getPluginName                       |
 
 | C Function                               | Julia Method                        |
 | :--------------------------------------- | :---------------------------------- |
@@ -453,41 +456,45 @@ and the corresponding Julia methods.
 
 Deprecated functions are not interfaced.
 
-| C Function                               | Julia Method                        |
-| :--------------------------------------- | :---------------------------------- |
-| ncGrabOpenUnlock                         |                                     |
-| ncGrabReadTimed                          |                                     |
-| _ncGrabNbrImagesAcquired                 |                                     |
-| ncCamOpenUnlock                          |                                     |
-| ncCamReadTimed                           |                                     |
-| ncCamReadUInt32Timed                     |                                     |
-| ncCamReadFloatTimed                      |                                     |
-| ncCamGetEmRawGainMin                     | getEmRawGainMin                     |
-| ncCamGetEmRawGainMax                     | getEmRawGainMax                     |
-| ncCamGetAnalogGainMin                    | getAnalogGainMin                    |
-| ncCamGetAnalogGainMax                    | getAnalogGainMax                    |
-| ncCamGetAnalogOffsetMin                  | getAnalogOffsetMin                  |
-| ncCamGetAnalogOffsetMax                  | getAnalogOffsetMax                  |
-| ncCamGetTargetDetectorTempMin            | getTargetDetectorTempMin            |
-| ncCamGetTargetDetectorTempMax            | getTargetDetectorTempMax            |
-| ncCamGetControllerTemp                   | getControllerTemp                   |
-| ncCamGetBinningModesAvailable            | getBinningModesAvailable            |
-| ncCamSetRoi                              | setRoi                              |
-| ncCamMoveRoi                             |                                     |
-| ncCamGetRoi                              | getRoi                              |
-| ncCamGetRoisAvailable                    | getRoisAvailable                    |
-| ncProcGetOneImage                        |                                     |
-| ncCamGetCameraPresent                    | getCameraPresent                    |
-| ncCamGetCameraAvailable                  | getCameraAvailable                  |
-| ncCamGetCameraPort                       | getCameraPort                       |
-| ncCamGetCameraCommInterface              | getCameraCommInterface              |
-| ncCamGetCameraMacAddress                 | getCameraMacAddress                 |
-| ncCamGetCameraSerialNumber               | getCameraSerialNumber               |
-| ncCamGetCameraDetectorSize               | getCameraDetectorSize               |
-| ncCamGetCameraDetectorType               | getCameraDetectorType               |
-| ncGrabGetControllerAvailable             | getControllerAvailable              |
-| ncGrabGetControllerSerialNumber          | getControllerSerialNumber           |
-| ncGrabGetControllerPort                  | getControllerPort                   |
-| ncGrabGetControllerCommInterface         | getControllerCommInterface          |
-| ncGrabGetControllerMacAddress            | getControllerMacAddress             |
-| ncGrabGetControllerPresent               | getControllerPresent                |
+| Deprecated C Function            | Non-deprecated Alternative      |
+| :------------------------------- | :------------------------------ |
+| ncGrabOpenUnlock                 |                                 |
+| ncGrabReadTimed                  |                                 |
+| _ncGrabNbrImagesAcquired         |                                 |
+| ncCamOpenUnlock                  |                                 |
+| ncCamReadTimed                   |                                 |
+| ncCamReadUInt32Timed             |                                 |
+| ncCamReadFloatTimed              |                                 |
+| ncCamGetEmRawGainMin             |                                 |
+| ncCamGetEmRawGainMax             |                                 |
+| ncCamGetAnalogGainMin            |                                 |
+| ncCamGetAnalogGainMax            |                                 |
+| ncCamGetAnalogOffsetMin          |                                 |
+| ncCamGetAnalogOffsetMax          |                                 |
+| ncCamGetTargetDetectorTempMin    |                                 |
+| ncCamGetTargetDetectorTempMax    |                                 |
+| ncCamGetControllerTemp           |                                 |
+| ncCamGetBinningModesAvailable    |                                 |
+| ncCamSetRoi                      |                                 |
+| ncCamMoveRoi                     |                                 |
+| ncCamGetRoi                      |                                 |
+| ncCamGetRoisAvailable            |                                 |
+| ncProcGetOneImage                |                                 |
+| ncCamGetCameraPresent            |                                 |
+| ncCamGetCameraAvailable          | ncControllerListGetSize         |
+| ncCamGetCameraPort               | (a)                             |
+| ncCamGetCameraCommInterface      | (b)                             |
+| ncCamGetCameraMacAddress         | ncControllerListGetUniqueID     |
+| ncCamGetCameraSerialNumber       | ncControllerListGetSerial       |
+| ncCamGetCameraDetectorSize       | ncControllerListGetDetectorSize |
+| ncCamGetCameraDetectorType       | ncControllerListGetDetectorType |
+| ncGrabGetControllerAvailable     | ncControllerListGetSize         |
+| ncGrabGetControllerSerialNumber  | ncControllerListGetSerial       |
+| ncGrabGetControllerPort          | (a)                             |
+| ncGrabGetControllerCommInterface | (b)                             |
+| ncGrabGetControllerMacAddress    | ncControllerListGetUniqueID     |
+| ncGrabGetControllerPresent       |                                 |
+
+(a) Use `ncControllerListGetPortChannel`, `ncGrabOpenFromList` or `ncCamOpenFromList`.
+
+(b) Use `ncControllerListGetPortInterface`, `ncGrabOpenFromList` or `ncCamOpenFromList`.

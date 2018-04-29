@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 212 have been currently interfaced.
+# 233 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -31,20 +31,23 @@ yields code to call C function `func` in Nüvü Camēras library assuming `rtype
 is the return type of the function, `proto` is a tuple of the argument types
 and `args...` are the arguments.
 
-The code is wrapped so that an exception `NuvuCameraError` get thrown in case
-of error.
+If `rtype` is `Status`, the code is wrapped so that an exception
+`NuvuCameraError` get thrown in case of error.
 
 """
 macro call(func, rtype, args...)
     qfunc = QuoteNode(__symbol(func))
-    rtype == :Status || error("return type must be `Status`")
     expr = Expr(:call, :ccall, Expr(:tuple, qfunc, :libnuvu), rtype, args...)
-    quote
-        local status
-        status = $(esc(expr))
-        if status != NC_SUCCESS
-            throw(NuvuCameraError($qfunc, status))
+    if rtype == :Status
+        return quote
+            local status
+            status = $(esc(expr))
+            if status != NC_SUCCESS
+                throw(NuvuCameraError($qfunc, status))
+            end
         end
+    else
+        return esc(expr)
     end
 end
 
@@ -81,131 +84,144 @@ end
 #-           (NcImageSaved, Ptr{ImageFormat}),
 #-           image, format)
 
-#- # int ncControllerListOpen(NcCtrlList * ctrlList);
-#- @inline ncControllerListOpen(ctrlList::Ptr{NcCtrlList}) =
-#-     @call(:ncControllerListOpen, Status,
-#-           (Ptr{NcCtrlList}, ),
-#-           ctrlList)
+function open(::Type{NcCtrlList}, basic::Bool = false)
+    ctrlList = Ref{NcCtrlList}()
+    if basic
+        # int ncControllerListOpenBasic(NcCtrlList * ctrlList);
+        @call(:ncControllerListOpenBasic, Status, (Ptr{NcCtrlList}, ), ctrlList)
+    else
+        # int ncControllerListOpen(NcCtrlList * ctrlList);
+        @call(:ncControllerListOpen, Status, (Ptr{NcCtrlList}, ), ctrlList)
+    end
+    return ctrlList[]
+end
 
-#- # int ncControllerListOpenBasic(NcCtrlList * ctrlList);
-#- @inline ncControllerListOpenBasic(ctrlList::Ptr{NcCtrlList}) =
-#-     @call(:ncControllerListOpenBasic, Status,
-#-           (Ptr{NcCtrlList}, ),
-#-           ctrlList)
+close(ctrlList::NcCtrlList) =
+    # int ncControllerListFree(NcCtrlList ctrlList);
+    @call(:ncControllerListFree, Status, (NcCtrlList, ), ctrlList)
 
-#- # int ncControllerListFree(NcCtrlList ctrlList);
-#- @inline ncControllerListFree(ctrlList::NcCtrlList) =
-#-     @call(:ncControllerListFree, Status,
-#-           (NcCtrlList, ),
-#-           ctrlList)
+for (jf, cf, T) in (
 
-#- # int ncControllerListGetSize(const NcCtrlList ctrlList, int * listSize);
-#- @inline ncControllerListGetSize(ctrlList::NcCtrlList, listSize::Ptr{Cint}) =
-#-     @call(:ncControllerListGetSize, Status,
-#-           (NcCtrlList, Ptr{Cint}),
-#-           ctrlList, listSize)
+    # int ncControllerListGetSize(const NcCtrlList ctrlList, int * listSize);
+    (:getSize, :ncControllerListGetSize, Cint),
 
-#- # int ncControllerListGetSerial(const NcCtrlList ctrlList, int index, char* serial, int serialSize);
-#- @inline ncControllerListGetSerial(ctrlList::NcCtrlList, index::Cint, serial::Ptr{Cchar}, serialSize::Cint) =
-#-     @call(:ncControllerListGetSerial, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, serial, serialSize)
+    # int ncControllerListGetFreePortCount(const NcCtrlList ctrlList, int * portCount);
+    (:getFreePortCount, :ncControllerListGetFreePortCount, Cint),
 
-#- # int ncControllerListGetModel(const NcCtrlList ctrlList, int index, char* model, int modelSize);
-#- @inline ncControllerListGetModel(ctrlList::NcCtrlList, index::Cint, model::Ptr{Cchar}, modelSize::Cint) =
-#-     @call(:ncControllerListGetModel, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, model, modelSize)
+    # int ncControllerListGetPluginCount(const NcCtrlList ctrlList, int * listSize);
+    (:getPluginCount, :ncControllerListGetPluginCount, Cint))
 
-#- # int ncControllerListGetPortUnit(const NcCtrlList ctrlList, int index, int * unit);
-#- @inline ncControllerListGetPortUnit(ctrlList::NcCtrlList, index::Cint, unit::Ptr{Cint}) =
-#-     @call(:ncControllerListGetPortUnit, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}),
-#-           ctrlList, index, unit)
+    @eval begin
 
-#- # int ncControllerListGetPortChannel(const NcCtrlList ctrlList, int index, int * channel);
-#- @inline ncControllerListGetPortChannel(ctrlList::NcCtrlList, index::Cint, channel::Ptr{Cint}) =
-#-     @call(:ncControllerListGetPortChannel, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}),
-#-           ctrlList, index, channel)
+        function $cf(ctrlList::NcCtrlList)
+            value = Ref{$T}()
+            @call($cf, Status, (NcCtrlList, Ptr{$T}), ctrlList, value)
+            return value[]
+        end
 
-#- # int ncControllerListGetPortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
-#- @inline ncControllerListGetPortInterface(ctrlList::NcCtrlList, index::Cint, acqInterface::Ptr{Cchar}, acqInterfaceSize::Cint) =
-#-     @call(:ncControllerListGetPortInterface, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, acqInterface, acqInterfaceSize)
+    end
+end
 
-#- # int ncControllerListGetUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
-#- @inline ncControllerListGetUniqueID(ctrlList::NcCtrlList, index::Cint, uniqueID::Ptr{Cchar}, uniqueIDSize::Cint) =
-#-     @call(:ncControllerListGetUniqueID, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, uniqueID, uniqueIDSize)
+for (jf, cf, T) in (
 
-#- # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
-#- @inline ncControllerListGetFullSizeSize(ctrlList::NcCtrlList, index::Cint, detectorSizeX::Ptr{Cint}, detectorSizeY::Ptr{Cint}) =
-#-     @call(:ncControllerListGetFullSizeSize, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}, Ptr{Cint}),
-#-           ctrlList, index, detectorSizeX, detectorSizeY)
+    # int ncControllerListGetPortUnit(const NcCtrlList ctrlList, int index, int * unit);
+    (:getPortUnit, :ncControllerListGetPortUnit, Cint),
 
-#- # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
-#- @inline ncControllerListGetDetectorSize(ctrlList::NcCtrlList, index::Cint, detectorSizeX::Ptr{Cint}, detectorSizeY::Ptr{Cint}) =
-#-     @call(:ncControllerListGetDetectorSize, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}, Ptr{Cint}),
-#-           ctrlList, index, detectorSizeX, detectorSizeY)
+    # int ncControllerListGetPortChannel(const NcCtrlList ctrlList, int index, int * channel);
+    (:getPortChannel, :ncControllerListGetPortChannel, Cint),
 
-#- # int ncControllerListGetDetectorType(const NcCtrlList ctrlList, int index, char* detectorType, int detectorTypeSize);
-#- @inline ncControllerListGetDetectorType(ctrlList::NcCtrlList, index::Cint, detectorType::Ptr{Cchar}, detectorTypeSize::Cint) =
-#-     @call(:ncControllerListGetDetectorType, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, detectorType, detectorTypeSize)
+    # int ncControllerListGetFreePortUnit(const NcCtrlList ctrlList, int index, int * unit);
+    (:getFreePortUnit, :ncControllerListGetFreePortUnit, Cint),
 
-#- # int ncControllerListGetFreePortCount(const NcCtrlList ctrlList, int * portCount);
-#- @inline ncControllerListGetFreePortCount(ctrlList::NcCtrlList, portCount::Ptr{Cint}) =
-#-     @call(:ncControllerListGetFreePortCount, Status,
-#-           (NcCtrlList, Ptr{Cint}),
-#-           ctrlList, portCount)
+    # int ncControllerListGetFreePortChannel(const NcCtrlList ctrlList, int index, int * channel);
+    (:getFreePortChannel, :ncControllerListGetFreePortChannel, Cint),
 
-#- # int ncControllerListGetFreePortUnit(const NcCtrlList ctrlList, int index, int * unit);
-#- @inline ncControllerListGetFreePortUnit(ctrlList::NcCtrlList, index::Cint, unit::Ptr{Cint}) =
-#-     @call(:ncControllerListGetFreePortUnit, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}),
-#-           ctrlList, index, unit)
+    # int ncControllerListGetFreePortReason(const NcCtrlList ctrlList, int index, enum NcPortUnusedReason* reason);
+    (:getFreePortReason, :ncControllerListGetFreePortReason, NcPortUnusedReason))
 
-#- # int ncControllerListGetFreePortChannel(const NcCtrlList ctrlList, int index, int * channel);
-#- @inline ncControllerListGetFreePortChannel(ctrlList::NcCtrlList, index::Cint, channel::Ptr{Cint}) =
-#-     @call(:ncControllerListGetFreePortChannel, Status,
-#-           (NcCtrlList, Cint, Ptr{Cint}),
-#-           ctrlList, index, channel)
+    @eval begin
 
-#- # int ncControllerListGetFreePortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
-#- @inline ncControllerListGetFreePortInterface(ctrlList::NcCtrlList, index::Cint, acqInterface::Ptr{Cchar}, acqInterfaceSize::Cint) =
-#-     @call(:ncControllerListGetFreePortInterface, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, acqInterface, acqInterfaceSize)
+        function $cf(ctrlList::NcCtrlList, index::Integer)
+            value = Ref{$T}()
+            @call($cf, Status, (NcCtrlList, Cint, Ptr{$T}),
+                  ctrlList, index, value)
+            return value[]
+        end
 
-#- # int ncControllerListGetFreePortUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
-#- @inline ncControllerListGetFreePortUniqueID(ctrlList::NcCtrlList, index::Cint, uniqueID::Ptr{Cchar}, uniqueIDSize::Cint) =
-#-     @call(:ncControllerListGetFreePortUniqueID, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, uniqueID, uniqueIDSize)
+    end
+end
 
-#- # int ncControllerListGetFreePortReason(const NcCtrlList ctrlList, int index, enum NcPortUnusedReason* reason);
-#- @inline ncControllerListGetFreePortReason(ctrlList::NcCtrlList, index::Cint, reason::Ptr{NcPortUnusedReason}) =
-#-     @call(:ncControllerListGetFreePortReason, Status,
-#-           (NcCtrlList, Cint, Ptr{NcPortUnusedReason}),
-#-           ctrlList, index, reason)
+for (jf, cf) in (
+    # int ncControllerListGetSerial(const NcCtrlList ctrlList, int index, char* serial, int serialSize);
+    (:getSerial, :ncControllerListGetSerial),
 
-#- # int ncControllerListGetPluginCount(const NcCtrlList ctrlList, int * listSize);
-#- @inline ncControllerListGetPluginCount(ctrlList::NcCtrlList, listSize::Ptr{Cint}) =
-#-     @call(:ncControllerListGetPluginCount, Status,
-#-           (NcCtrlList, Ptr{Cint}),
-#-           ctrlList, listSize)
+    # int ncControllerListGetModel(const NcCtrlList ctrlList, int index, char* model, int modelSize);
+    (:getModel, :ncControllerListGetModel),
 
-#- # int ncControllerListGetPluginName(const NcCtrlList ctrlList, int index, char* pluginName, int pluginNameSize);
-#- @inline ncControllerListGetPluginName(ctrlList::NcCtrlList, index::Cint, pluginName::Ptr{Cchar}, pluginNameSize::Cint) =
-#-     @call(:ncControllerListGetPluginName, Status,
-#-           (NcCtrlList, Cint, Ptr{Cchar}, Cint),
-#-           ctrlList, index, pluginName, pluginNameSize)
+    # int ncControllerListGetPortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
+    (:getPortInterface, :ncControllerListGetPortInterface),
+
+    # int ncControllerListGetUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
+    (:getUniqueID, :ncControllerListGetUniqueID),
+
+    # int ncControllerListGetDetectorType(const NcCtrlList ctrlList, int index, char* detectorType, int detectorTypeSize);
+    (:getDetectorType, :ncControllerListGetDetectorType),
+
+    # int ncControllerListGetFreePortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
+    (:getFreePortInterface, :ncControllerListGetFreePortInterface),
+
+    # int ncControllerListGetFreePortUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
+    (:getFreePortUniqueID, :ncControllerListGetFreePortUniqueID),
+
+    # int ncControllerListGetPluginName(const NcCtrlList ctrlList, int index, char* pluginName, int pluginNameSize);
+    (:getPluginName, :ncControllerListGetPluginName))
+
+    qcf = QuoteNode(cf)
+    @eval begin
+
+        function $jf(ctrlList::NcCtrlList, index::Integer)
+            # Fisrt call to retrieve the number of bytes, then second call to
+            # retrieve the contents.
+            nbytes = @call($cf, Cint, (NcCtrlList, Cint, Ptr{Void}, Cint),
+                           ctrlList, index, C_NULL, 0)
+            if nbytes < 1
+                # Assume index was out of bound.
+                throw(NuvuCameraError($qcf, NC_ERROR_OUT_OF_BOUNDS))
+            end
+            buf = Array{Cchar}(nbytes)
+            ptr = pointer(buf)
+            status = Status(@call($cf, Cint, (NcCtrlList, Cint, Ptr{Cchar}, Cint),
+                                  ctrlList, index, ptr, nbytes))
+            if status != NC_SUCCESS
+                throw(NuvuCameraError($qcf, status))
+            end
+            return unsafe_string(ptr, nbytes - 1)
+        end
+
+    end
+end
+
+for (jf, cf, T1, T2) in (
+
+    # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
+    (:getFullSizeSize, :ncControllerListGetFullSizeSize, Cint, Cint),
+
+    # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
+    (:getDetectorSize, :ncControllerListGetDetectorSize, Cint, Cint))
+
+    @eval begin
+
+        function $cf(ctrlList::NcCtrlList, index::Integer)
+            val1 = Ref{$T1}()
+            val2 = Ref{$T2}()
+            @call($cf, Status, (NcCtrlList, Cint, Ptr{$T1}, Ptr{$T2}),
+                  ctrlList, index, val1, val2)
+            return val1[], val2[]
+        end
+
+    end
+end
+
 
 #------------------------------------------------------------------------------
 # GRAB FUNCTIONS

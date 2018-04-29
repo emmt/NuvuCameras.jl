@@ -60,8 +60,8 @@ struct ImageParams{T<:Union{NcCam,NcGrab}} <: Handle
     ptr::Ptr{Void}
 end
 
-# typedef unsigned short NcImage;
-const NcImage = Cushort
+# Pixel type for images (`unsigned short` in C code).
+const NcImage = UInt16
 
 # Alias for a callback returning nothing.
 const VoidCallback = Ptr{Void}
@@ -69,6 +69,7 @@ const VoidCallback = Ptr{Void}
 # typedef void(*NcCallbackFunc)(void*);
 const NcCallbackFunc = Ptr{Void}
 
+# FIXME: This definition should be automatically computed.
 struct TmStruct
     tm_sec::Cint         # Seconds.     [0-60] (1 leap second)
     tm_min::Cint         # Minutes.     [0-59]
@@ -82,9 +83,3 @@ struct TmStruct
     tm_gmtoff::Clong     # Seconds east of UTC.
     tm_zone::Ptr{Cchar}  # Timezone abbreviation.
 end
-
-#
-#
-#  typedef fitsfile NcCtxSaved;
-#
-#  typedef struct _NcDevice* NcDevice;
