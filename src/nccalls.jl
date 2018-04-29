@@ -447,12 +447,17 @@ function saveImage(grab::Grab, image::DenseMatrix{<:PixelTypes}, name::Name,
     saveImage(grab, pointer(image), name, saveFormat, overwrite)
 end
 
-#- # int ncGrabStartSaveAcquisition(NcGrab grab, const char *saveName, enum ImageFormat saveFormat, int imagesPerCubes, int nbrOfCubes, int overwriteFlag);
-#- @inline ncGrabStartSaveAcquisition(grab::Grab, saveName::Ptr{Cchar}, saveFormat::ImageFormat, imagesPerCubes::Cint, nbrOfCubes::Cint, overwriteFlag::Cint) =
-#-     @call(:ncGrabStartSaveAcquisition, Status,
-#-           (Grab, Ptr{Cchar}, ImageFormat, Cint, Cint, Cint),
-#-           grab, saveName, saveFormat, imagesPerCubes, nbrOfCubes, overwriteFlag)
-
+function startSaveAcquisition(grab::Grab, saveName::Name,
+                              saveFormat::ImageFormat, imagesPerCubes::Integer,
+                              nbrOfCubes::Integer, overwrite::Bool)
+    # int ncGrabStartSaveAcquisition(NcGrab grab, const char *saveName,
+    #                                enum ImageFormat saveFormat,
+    #                                int imagesPerCubes, int nbrOfCubes,
+    #                                int overwriteFlag);
+    @call(:ncGrabStartSaveAcquisition, Status,
+          (Grab, Cstring, ImageFormat, Cint, Cint, Cint),
+          grab, saveName, saveFormat, imagesPerCubes, nbrOfCubes, overwrite)
+end
 
 #- # int ncGrabSaveImageSetHeaderCallback(NcGrab grab, void (*fct)(NcGrab grab, NcImageSaved *imageFile, void *data), void *data);
 #- @inline ncGrabSaveImageSetHeaderCallback(grab::Grab, fct::Ptr{Void}, data::Ptr{Void}) =
@@ -671,6 +676,9 @@ for (jf, Tj, cf, Tc) in (
 
     # int ncCamSetHeartbeat(NcCam cam, int timeMs);
     (:setHeartbeat, Integer, :ncCamSetHeartbeat, Cint),
+
+    # int ncCamResetTimer(NcCam cam, double timeOffset);
+    (:resetTimer, Real, :ncCamResetTimer, Cdouble),
 
     # int ncCamSetTimeout(NcCam cam, int timeMs);
     (:setTimeout, Integer, :ncCamSetTimeout, Cint),
@@ -1002,12 +1010,20 @@ function saveImage(cam::Cam, image::DenseMatrix{<:PixelTypes}, name::Name,
     saveImage(cam, pointer(image), name, saveFormat, comments, overwrite)
 end
 
-#- # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName, enum ImageFormat saveFormat, int imagesPerCubes, const char *addComments, int nbrOfCubes, int overwriteFlag);
-#- @inline ncCamStartSaveAcquisition(cam::Cam, saveName::Ptr{Cchar}, saveFormat::ImageFormat, imagesPerCubes::Cint, addComments::Ptr{Cchar}, nbrOfCubes::Cint, overwriteFlag::Cint) =
-#-     @call(:ncCamStartSaveAcquisition, Status,
-#-           (Cam, Ptr{Cchar}, ImageFormat, Cint, Ptr{Cchar}, Cint, Cint),
-#-           cam, saveName, saveFormat, imagesPerCubes, addComments, nbrOfCubes, overwriteFlag)
-
+function startSaveAcquisition(cam::Cam, saveName::Cstring,
+                              saveFormat::ImageFormat, imagesPerCubes::Integer,
+                              addComments::Cstring, nbrOfCubes::Integer,
+                              overwrite::Bool)
+    # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName,
+    #                               enum ImageFormat saveFormat,
+    #                               int imagesPerCubes,
+    #                               const char *addComments, int nbrOfCubes,
+    #                               int overwriteFlag);
+    @call(:ncCamStartSaveAcquisition, Status,
+          (Cam, Cstring, ImageFormat, Cint, Cstring, Cint, Cint),
+          cam, saveName, saveFormat, imagesPerCubes, addComments,
+          nbrOfCubes, overwriteFlag)
+end
 
 #- # int ncCamSaveImageSetHeaderCallback(NcCam cam, void (*fct)(NcCam cam, NcImageSaved *imageFile, void *data), void *data);
 #- @inline ncCamSaveImageSetHeaderCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
@@ -1038,11 +1054,6 @@ end
 #-     @call(:ncCamSaveImageGetCompressionType, Status,
 #-           (Cam, Ptr{ImageCompression}),
 #-           cam, compress)
-
-@inline resetTimer(cam::Cam, timeOffset::Real) =
-    # int ncCamResetTimer(NcCam cam, double timeOffset);
-    @call(:ncCamResetTimer, Status, (Cam, Cdouble), cam, timeOffset)
-
 
 @inline setEvent(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
 # int ncCamSetEvent(NcCam cam, NcCallbackFunc funcName, void *ncData);
