@@ -210,10 +210,10 @@ and the corresponding Julia methods.
 | ncCamPrepareAcquisition                  | prepareAcquisition                  |
 | ncCamBeginAcquisition                    | beginAcquisition                    |
 | ncCamAbort                               | abort                               |
-| ncSaveImage                              |                                     |
+| ncSaveImage                              | saveImage                           |
 | ncCamOpenImageParams                     | open                                |
 | ncCamGetImageParams                      | getImageParams                      |
-| ncCamCloseImageParams                    |                                     |
+| ncCamCloseImageParams                    | close                               |
 | ncCamRead                                | read                                |
 | ncCamReadUInt32                          | read                                |
 | ncCamReadFloat                           | read                                |

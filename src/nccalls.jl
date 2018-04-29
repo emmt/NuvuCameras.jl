@@ -389,7 +389,7 @@ function getImageParams(grab::Grab, image::Ptr{Void},
           grab, image, imageParams)
 end
 
-@inline close(imageParams::ImageParams{Grab}) =
+close(imageParams::ImageParams{Grab}) =
     # int ncGrabCloseImageParams(ImageParams imageParams);
     @call(:ncGrabCloseImageParams, Status, (ImageParams, ), imageParams)
 
@@ -819,13 +819,21 @@ getHeartbeat(cam) -> ms
 ```
 """ getHeartbeat
 
-
-
-#- # int ncSaveImage(int width, int height, ImageParams imageParams, const void* imageNc, enum ImageDataType dataType, const char* saveName, enum ImageFormat saveFormat, enum ImageCompression compress, const char* addComments, int overwriteFlag);
-#- @inline ncSaveImage(width::Cint, height::Cint, imageParams::ImageParams, imageNc::Ptr{Void}, dataType::ImageDataType, saveName::Ptr{Cchar}, saveFormat::ImageFormat, compress::ImageCompression, addComments::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncSaveImage, Status,
-#-           (Cint, Cint, ImageParams, Ptr{Void}, ImageDataType, Ptr{Cchar}, ImageFormat, ImageCompression, Ptr{Cchar}, Cint),
-#-           width, height, imageParams, imageNc, dataType, saveName, saveFormat, compress, addComments, overwriteFlag)
+function saveImage(width::Integer, height::Integer, imageParams::ImageParams,
+                   image::Ptr{Void}, dataType::ImageDataType, saveName::Name,
+                   saveFormat::ImageFormat, compress::ImageCompression,
+                   addComments::Name, overwrite::Bool)
+    # int ncSaveImage(int width, int height, ImageParams imageParams,
+    #                 const void* image, enum ImageDataType dataType,
+    #                 const char* saveName, enum ImageFormat saveFormat,
+    #                 enum ImageCompression compress, const char* addComments,
+    #                 int overwriteFlag);
+    @call(:ncSaveImage, Status,
+          (Cint, Cint, ImageParams, Ptr{Void}, ImageDataType, Cstring,
+           ImageFormat, ImageCompression, Cstring, Cint),
+          width, height, imageParams, imageNc, dataType, saveName, saveFormat,
+          compress, addComments, overwriteFlag)
+end
 
 @inline function open(::Type{ImageParams{Cam}})
     value = Ref{ImageParams{Cam}}()
@@ -841,7 +849,7 @@ function getImageParams(cam::Cam, image::Ptr{Void},
           cam, image, imageParams)
 end
 
-@inline close(imageParams::ImageParams{Cam}) =
+close(imageParams::ImageParams{Cam}) =
     # int ncCamCloseImageParams(ImageParams imageParams);
     @call(:ncCamCloseImageParams, Status, (ImageParams, ), imageParams)
 
