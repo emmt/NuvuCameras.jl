@@ -77,9 +77,6 @@ const NC_USE_MAC_ADRESS = Cint(0x20000000)
       SHORT_SSVA_CMD,
       BIN_CDS)
 
-# For backwards compatibiliy
-const Param = Features
-
 # List of different temperatures
 @enum(NcTemperatureType::Cint,
       NC_TEMP_CCD,
