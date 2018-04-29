@@ -27,12 +27,12 @@ CPPFLAGS = -I.
 CFLAGS = -O2 -Wall
 LDFLAGS =
 
-default: deps.jl
+all: deps.jl
 
 clean:
 	rm -f *~ *.o
 
-all: $(srcdir)/../src/constants.jl ccalls-auto.jl deps.jl
+work: $(srcdir)/../src/constants.jl ccalls-auto.jl deps.jl
 
 deps.jl: Makefile
 	echo >"$@" "const libnuvu = \"$(NUVU_DLL)\""
