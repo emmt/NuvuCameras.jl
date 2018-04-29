@@ -1,3 +1,88 @@
+# Conversion of C Code to Julia
+
+This document provides information for converting in Julia C calls to the C
+application programming interface (API) of the Nüvü Camēras software
+development kit (SDK).
+
+
+## Data Types
+
+Apart from basic C types, the Nüvü Camēras SDK defines a number of opaque
+structures (thus only pointers to such structures are involved in the C API),
+enumerations and some typedef's.
+
+
+### Opaque Structures
+
+The Julia interface defines types embedding a pointer for each opaque structure
+of the SDK summarized by the following table.
+
+| Julia Type            | Equivallent C Structure Type        | Equivallent C Type    |
+| :-------------------- | :---------------------------------- | :-------------------- |
+| `NcCam`               | `struct NcCamHandle*`               | `NcCam`               |
+| `NcGrab`              | `struct NcGrabHandle*`              | `NcGrab`              |
+| `ImageParams{T}` (*)  | `struct NcImagParamHandle*`         | `ImageParams`         |
+| `NcProc`              | `struct NcProcHandle*`              | `NcProc`              |
+| `NcCtrlList`          | `struct NcCtrlListHandle*`          | `NcCtrlList`          |
+| `NcCropModeSolutions` | `struct NcCropModeSolutionsHandle*` | `NcCropModeSolutions` |
+| `NcImageSaved`        | `struct NcImageSavedHandle*`        | `NcImageSaved*`       |
+| `NcStatsCtx`          | `struct _NcStatsCtx*`               | `NcStatsCtx*`         |
+
+(*) Julia type `ImageParams{T}` is parameterized by `T` which is either `NcCam`
+or `NcGrab` to keep track of its origin.
+
+
+### Enumerations
+
+The following table lists all enumerations (the names of the enumeration values
+are unchanged).
+
+| Julia Type           | C Enumeration Type        |
+| :------------------- | :------------------------ |
+| `Ampli`              | `enum Ampli`              |
+| `CommType`           | `enum CommType`           |
+| `DetectorType`       | `enum DetectorType`       |
+| `Features` (*)       | `enum Features`           |
+| `NcTemperatureType`  | `enum NcTemperatureType`  |
+| `NcPortUnusedReason` | `enum NcPortUnusedReason` |
+| `ShutterMode`        | `enum ShutterMode`        |
+| `TriggerMode`        | `enum TriggerMode`        |
+| `CropMode`           | `enum CropMode`           |
+| `ExtShutter`         | `enum ExtShutter`         |
+| `ExtPolarity`        | `enum ExtPolarity`        |
+| `ImageFormat`        | `enum ImageFormat`        |
+| `ImageDataType`      | `enum ImageDataType`      |
+| `HeaderDataType`     | `enum HeaderDataType`     |
+| `ImageCompression`   | `enum ImageCompression`   |
+| `ProcType`           | `enum ProcType`           |
+| `TimestampMode`      | `enum TimestampMode`      |
+| `VersionType`        | `enum VersionType`        |
+| `NcSdkDataTypes`     | `enum NcSdkDataTypes`     |
+
+(*) The SDK also defines `Param` as an alias to the `Features` enumeration but
+this alias is not used.
+
+
+### Other Types
+
+C type `NcImage` defines the type of the pixels of an image, it is an alias to
+`unsigned short` and defined as a constant eaqul to `UInt16` in Julia.
+
+
+### Callbacks
+
+All callbacks are passed as `Ptr{Void}` in Julia using `cfunction` to get the
+address to the Julia function.  Remember to compute such addresses in the
+`__init__` method of the module if pre-compilation is activated.
+
+
+### Unused Types
+
+C types `NcProcCtx`, `NcDevice` and `NcCtxSaved` (respectively defined as
+`struct NcProcHandle`, `struct _NcDevice*` and `fitsfile`) are not used by any
+function of the SDK.
+
+
 ## Interfaced Functions
 
 The following table lists the interfaced C functions of the Nüvü Camēras SDK
