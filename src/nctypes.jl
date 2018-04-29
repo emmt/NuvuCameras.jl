@@ -1,5 +1,5 @@
 #
-# types.jl -
+# nctypes.jl -
 #
 # Definitions of types for the interface to the Nüvü Camēras SDK.
 #
@@ -35,18 +35,14 @@ const Name = Union{AbstractString,Symbol}
 """
 
 Abstract type `Handle` is the super type of all types used to store the
-address of an opaque sructure.  All such types have a filed `ptr` with the
+address of an opaque sructure.  All such types have a field `ptr` with the
 pointer.
 
 """
 abstract type Handle end
 
-# Beware, this it is more convenient to define NcImageSaved and NcStatsCtx
-# as being pointer rather than structures (FIMXE: check).
-
-for T in (:NcCam, :NcGrab, :NcProc,
-          :NcCtrlList, :NcCropModeSolutions,
-          :NcImageSaved, :NcStatsCtx, :NcCtxSaved)
+for T in (:Cam, :Grab, :Proc, :CtrlList, :CropModeSolutions,
+          :ImageSaved, :StatsCtx)
     @eval begin
 
         struct $T <: Handle; ptr::Ptr{Void}; end
@@ -56,18 +52,12 @@ for T in (:NcCam, :NcGrab, :NcProc,
     end
 end
 
-struct ImageParams{T<:Union{NcCam,NcGrab}} <: Handle
+struct ImageParams{T<:Union{Cam,Grab}} <: Handle
     ptr::Ptr{Void}
 end
 
 # Pixel type for images (`unsigned short` in C code).
-const NcImage = UInt16
-
-# Alias for a callback returning nothing.
-const VoidCallback = Ptr{Void}
-
-# typedef void(*NcCallbackFunc)(void*);
-const NcCallbackFunc = Ptr{Void}
+const Image = UInt16
 
 # FIXME: This definition should be automatically computed.
 struct TmStruct

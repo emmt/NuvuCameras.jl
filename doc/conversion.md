@@ -4,6 +4,11 @@ This document provides information for converting in Julia C calls to the C
 application programming interface (API) of the Nüvü Camēras software
 development kit (SDK).
 
+The low level interface is in a `NC` module which exports nothing, so all
+references to methods, constants, *etc.* of this module have to be prefixed by
+`NC.`.  For this reason, the prefixes `nc` (for functions), `Nc` (for some
+types) or `NC_` (for some constants) used in the C API have been stripped.
+
 
 ## Data Types
 
@@ -17,19 +22,19 @@ enumerations and some typedef's.
 The Julia interface defines types embedding a pointer for each opaque structure
 of the SDK summarized by the following table.
 
-| Julia Type            | Equivallent C Structure Type        | Equivallent C Type    |
-| :-------------------- | :---------------------------------- | :-------------------- |
-| `NcCam`               | `struct NcCamHandle*`               | `NcCam`               |
-| `NcGrab`              | `struct NcGrabHandle*`              | `NcGrab`              |
-| `ImageParams{T}` (*)  | `struct NcImagParamHandle*`         | `ImageParams`         |
-| `NcProc`              | `struct NcProcHandle*`              | `NcProc`              |
-| `NcCtrlList`          | `struct NcCtrlListHandle*`          | `NcCtrlList`          |
-| `NcCropModeSolutions` | `struct NcCropModeSolutionsHandle*` | `NcCropModeSolutions` |
-| `NcImageSaved`        | `struct NcImageSavedHandle*`        | `NcImageSaved*`       |
-| `NcStatsCtx`          | `struct _NcStatsCtx*`               | `NcStatsCtx*`         |
+| Julia Type           | Equivallent C Structure Type        | Equivallent C Type    |
+| :------------------- | :---------------------------------- | :-------------------- |
+| `Cam`                | `struct NcCamHandle*`               | `NcCam`               |
+| `Grab`               | `struct NcGrabHandle*`              | `NcGrab`              |
+| `ImageParams{T}` (*) | `struct NcImagParamHandle*`         | `ImageParams`         |
+| `Proc`               | `struct NcProcHandle*`              | `NcProc`              |
+| `CtrlList`           | `struct NcCtrlListHandle*`          | `NcCtrlList`          |
+| `CropModeSolutions`  | `struct NcCropModeSolutionsHandle*` | `NcCropModeSolutions` |
+| `ImageSaved`         | `struct NcImageSavedHandle*`        | `NcImageSaved*`       |
+| `StatsCtx`           | `struct _NcStatsCtx*`               | `NcStatsCtx*`         |
 
-(*) Julia type `ImageParams{T}` is parameterized by `T` which is either `NcCam`
-or `NcGrab` to keep track of its origin.
+(*) Julia type `ImageParams{T}` is parameterized by `T` which is either `Cam`
+or `Grab` to keep track of its origin.
 
 
 ### Enumerations
@@ -37,27 +42,27 @@ or `NcGrab` to keep track of its origin.
 The following table lists all enumerations (the names of the enumeration values
 are unchanged).
 
-| Julia Type           | C Enumeration Type        |
-| :------------------- | :------------------------ |
-| `Ampli`              | `enum Ampli`              |
-| `CommType`           | `enum CommType`           |
-| `DetectorType`       | `enum DetectorType`       |
-| `Features` (*)       | `enum Features`           |
-| `NcTemperatureType`  | `enum NcTemperatureType`  |
-| `NcPortUnusedReason` | `enum NcPortUnusedReason` |
-| `ShutterMode`        | `enum ShutterMode`        |
-| `TriggerMode`        | `enum TriggerMode`        |
-| `CropMode`           | `enum CropMode`           |
-| `ExtShutter`         | `enum ExtShutter`         |
-| `ExtPolarity`        | `enum ExtPolarity`        |
-| `ImageFormat`        | `enum ImageFormat`        |
-| `ImageDataType`      | `enum ImageDataType`      |
-| `HeaderDataType`     | `enum HeaderDataType`     |
-| `ImageCompression`   | `enum ImageCompression`   |
-| `ProcType`           | `enum ProcType`           |
-| `TimestampMode`      | `enum TimestampMode`      |
-| `VersionType`        | `enum VersionType`        |
-| `NcSdkDataTypes`     | `enum NcSdkDataTypes`     |
+| Julia Type         | C Enumeration Type        |
+| :----------------- | :------------------------ |
+| `Ampli`            | `enum Ampli`              |
+| `CommType`         | `enum CommType`           |
+| `DetectorType`     | `enum DetectorType`       |
+| `Features` (*)     | `enum Features`           |
+| `TemperatureType`  | `enum NcTemperatureType`  |
+| `PortUnusedReason` | `enum NcPortUnusedReason` |
+| `ShutterMode`      | `enum ShutterMode`        |
+| `TriggerMode`      | `enum TriggerMode`        |
+| `CropMode`         | `enum CropMode`           |
+| `ExtShutter`       | `enum ExtShutter`         |
+| `ExtPolarity`      | `enum ExtPolarity`        |
+| `ImageFormat`      | `enum ImageFormat`        |
+| `ImageDataType`    | `enum ImageDataType`      |
+| `HeaderDataType`   | `enum HeaderDataType`     |
+| `ImageCompression` | `enum ImageCompression`   |
+| `ProcType`         | `enum ProcType`           |
+| `TimestampMode`    | `enum TimestampMode`      |
+| `VersionType`      | `enum VersionType`        |
+| `SdkDataTypes`     | `enum NcSdkDataTypes`     |
 
 (*) The SDK also defines `Param` as an alias to the `Features` enumeration but
 this alias is not used.
@@ -65,8 +70,9 @@ this alias is not used.
 
 ### Other Types
 
-C type `NcImage` defines the type of the pixels of an image, it is an alias to
-`unsigned short` and defined as a constant eaqul to `UInt16` in Julia.
+Julia type `Image` is the equivallent to the C type `NcImage` which defines the
+type of the pixels of an image.  In C, `NcImage` is an alias to `unsigned
+short`; hence `Image` is defined as a constant equal to `UInt16` in Julia.
 
 
 ### Callbacks
