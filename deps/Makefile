@@ -27,7 +27,7 @@ CPPFLAGS = -I.
 CFLAGS = -O2 -Wall
 LDFLAGS =
 
-default: all
+default: deps.jl
 
 clean:
 	rm -f *~ *.o
