@@ -96,33 +96,9 @@ and the corresponding Julia methods.
 
 | C Function                               | Julia Method                        |
 | :--------------------------------------- | :---------------------------------- |
-| ncWriteFileHeader                        |                                     |
-| ncReadFileHeader                         |                                     |
-| ncImageGetFileFormat                     |                                     |
-
-| C Function                               | Julia Method                        |
-| :--------------------------------------- | :---------------------------------- |
-| ncControllerListOpen                     | open                                |
-| ncControllerListOpenBasic                | open                                |
-| ncControllerListFree                     | close                               |
-| ncControllerListGetSize                  | getSize                             |
-| ncControllerListGetSerial                | getSerial                           |
-| ncControllerListGetModel                 | getModel                            |
-| ncControllerListGetPortUnit              | getPortUnit                         |
-| ncControllerListGetPortChannel           | getPortChannel                      |
-| ncControllerListGetPortInterface         | getPortInterface                    |
-| ncControllerListGetUniqueID              | getUniqueID                         |
-| ncControllerListGetFullSizeSize          | getFullSizeSize                     |
-| ncControllerListGetDetectorSize          | getDetectorSize                     |
-| ncControllerListGetDetectorType          | getDetectorType                     |
-| ncControllerListGetFreePortCount         | getFreePortCount                    |
-| ncControllerListGetFreePortUnit          | getFreePortUnit                     |
-| ncControllerListGetFreePortChannel       | getFreePortChannel                  |
-| ncControllerListGetFreePortInterface     | getFreePortInterface                |
-| ncControllerListGetFreePortUniqueID      | getFreePortUniqueID                 |
-| ncControllerListGetFreePortReason        | getFreePortReason                   |
-| ncControllerListGetPluginCount           | getPluginCount                      |
-| ncControllerListGetPluginName            | getPluginName                       |
+| ncWriteFileHeader                        | writeFileHeader                     |
+| ncReadFileHeader                         | readFileHeader                      |
+| ncImageGetFileFormat                     | getFileFormat                       |
 
 | C Function                               | Julia Method                        |
 | :--------------------------------------- | :---------------------------------- |
@@ -135,8 +111,8 @@ and the corresponding Julia methods.
 | ncGrabStart                              | start                               |
 | ncGrabAbort                              | abort                               |
 | ncGrabRead                               | read                                |
-| ncGrabReadChronological                  |                                     |
-| ncGrabReadChronologicalNonBlocking       |                                     |
+| ncGrabReadChronological                  | readChronological                   |
+| ncGrabReadChronologicalNonBlocking       | readChronologicalNonBlocking        |
 | ncGrabOpenImageParams                    | open                                |
 | ncGrabGetImageParams                     | getImageParams                      |
 | ncGrabCloseImageParams                   | close                               |
@@ -355,8 +331,6 @@ and the corresponding Julia methods.
 | ncCamGetFullCCDSize                      | getFullCCDSize                      |
 | ncCamNbrImagesAcquired                   |                                     |
 | ncCamGetSafeShutdownTemperature          | getSafeShutdownTemperature          |
-| ncCamSetCropMode                         | setCropMode                         |
-| ncCamGetCropMode                         | getCropMode                         |
 | ncCamCreateBias                          |                                     |
 | ncCamCancelBiasCreation                  |                                     |
 | ncCamGetProcType                         | getProcType                         |
@@ -405,17 +379,23 @@ and the corresponding Julia methods.
 | ncCamParamGetVoidPtr                     | getParamVoidPtr                     |
 | ncCamParamGetCallback                    | getParamCallback                    |
 
+
+### Crop Mode Solutions
+
 | C Function                               | Julia Method                        |
 | :--------------------------------------- | :---------------------------------- |
-| ncCropModeSolutionsOpen                  |                                     |
-| ncCropModeSolutionsRefresh               |                                     |
-| ncCropModeSolutionsSetParameters         |                                     |
-| ncCropModeSolutionsGetParameters         |                                     |
-| ncCropModeSolutionsGetTotal              |                                     |
-| ncCropModeSolutionsGetResult             |                                     |
-| ncCropModeSolutionsGetLocationRanges     |                                     |
-| ncCropModeSolutionsGetResultAtLocation   |                                     |
-| ncCropModeSolutionsClose                 |                                     |
+| ncCamSetCropMode                         | setCropMode                         |
+| ncCamGetCropMode                         | getCropMode                         |
+| ncCropModeSolutionsOpen                  | open                                |
+| ncCropModeSolutionsRefresh               | refresh                             |
+| ncCropModeSolutionsSetParameters         | setParameters                       |
+| ncCropModeSolutionsGetParameters         | getParameters                       |
+| ncCropModeSolutionsGetTotal              | getTotal                            |
+| ncCropModeSolutionsGetResult             | getResult                           |
+| ncCropModeSolutionsGetLocationRanges     | getLocationRanges                   |
+| ncCropModeSolutionsGetResultAtLocation   | getResultAtLocation                 |
+| ncCropModeSolutionsClose                 | close                               |
+
 
 ### Processing Functions
 
@@ -443,6 +423,7 @@ and the corresponding Julia methods.
 | ncProcSaveSetHeaderCallback              | setSaveHeaderCallback               |
 | ncProcLoadSetHeaderCallback              | setLoadHeaderCallback               |
 
+
 ### Statistical Functions
 
 | C Function                               | Julia Method                        |
@@ -456,6 +437,32 @@ and the corresponding Julia methods.
 | ncStatsGetHistoCrossSection              | getHistoCrossSection                |
 | ncStatsGetGaussFit                       | getGaussFit                         |
 
+
+### Controller Listing Functions
+
+| C Function                               | Julia Method                        |
+| :--------------------------------------- | :---------------------------------- |
+| ncControllerListOpen                     | open                                |
+| ncControllerListOpenBasic                | open                                |
+| ncControllerListFree                     | close                               |
+| ncControllerListGetSize                  | getSize                             |
+| ncControllerListGetSerial                | getSerial                           |
+| ncControllerListGetModel                 | getModel                            |
+| ncControllerListGetPortUnit              | getPortUnit                         |
+| ncControllerListGetPortChannel           | getPortChannel                      |
+| ncControllerListGetPortInterface         | getPortInterface                    |
+| ncControllerListGetUniqueID              | getUniqueID                         |
+| ncControllerListGetFullSizeSize          | getFullSizeSize                     |
+| ncControllerListGetDetectorSize          | getDetectorSize                     |
+| ncControllerListGetDetectorType          | getDetectorType                     |
+| ncControllerListGetFreePortCount         | getFreePortCount                    |
+| ncControllerListGetFreePortUnit          | getFreePortUnit                     |
+| ncControllerListGetFreePortChannel       | getFreePortChannel                  |
+| ncControllerListGetFreePortInterface     | getFreePortInterface                |
+| ncControllerListGetFreePortUniqueID      | getFreePortUniqueID                 |
+| ncControllerListGetFreePortReason        | getFreePortReason                   |
+| ncControllerListGetPluginCount           | getPluginCount                      |
+| ncControllerListGetPluginName            | getPluginName                       |
 
 
 ## Deprecated Functions
@@ -486,21 +493,23 @@ Deprecated functions are not interfaced.
 | ncCamGetRoi                      |                                 |
 | ncCamGetRoisAvailable            |                                 |
 | ncProcGetOneImage                |                                 |
-| ncCamGetCameraPresent            |                                 |
-| ncCamGetCameraAvailable          | ncControllerListGetSize         |
-| ncCamGetCameraPort               | (a)                             |
-| ncCamGetCameraCommInterface      | (b)                             |
-| ncCamGetCameraMacAddress         | ncControllerListGetUniqueID     |
-| ncCamGetCameraSerialNumber       | ncControllerListGetSerial       |
-| ncCamGetCameraDetectorSize       | ncControllerListGetDetectorSize |
-| ncCamGetCameraDetectorType       | ncControllerListGetDetectorType |
 | ncGrabGetControllerAvailable     | ncControllerListGetSize         |
 | ncGrabGetControllerSerialNumber  | ncControllerListGetSerial       |
 | ncGrabGetControllerPort          | (a)                             |
 | ncGrabGetControllerCommInterface | (b)                             |
 | ncGrabGetControllerMacAddress    | ncControllerListGetUniqueID     |
-| ncGrabGetControllerPresent       |                                 |
+| ncGrabGetControllerPresent       | (c)                             |
+| ncCamGetCameraAvailable          | ncControllerListGetSize         |
+| ncCamGetCameraSerialNumber       | ncControllerListGetSerial       |
+| ncCamGetCameraPort               | (a)                             |
+| ncCamGetCameraCommInterface      | (b)                             |
+| ncCamGetCameraMacAddress         | ncControllerListGetUniqueID     |
+| ncCamGetCameraDetectorSize       | ncControllerListGetDetectorSize |
+| ncCamGetCameraDetectorType       | ncControllerListGetDetectorType |
+| ncCamGetCameraPresent            | (c)                             |
 
 (a) Use `ncControllerListGetPortChannel`, `ncGrabOpenFromList` or `ncCamOpenFromList`.
 
 (b) Use `ncControllerListGetPortInterface`, `ncGrabOpenFromList` or `ncCamOpenFromList`.
+
+(c) Deprecated, not thread safe.

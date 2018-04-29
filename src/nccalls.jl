@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 266 have been currently interfaced.
+# 270 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -375,18 +375,19 @@ for (jf, Tj, cf, Tc) in (
     end
 end
 
-@inline function open(::Type{ImageParams{Grab}})
+function open(::Type{ImageParams{Grab}})
     value = Ref{ImageParams{Grab}}()
     # int ncGrabOpenImageParams(ImageParams *imageParams);
     @call(:ncGrabOpenImageParams, Status, (Ptr{ImageParams}, ), value)
     return value[]
 end
 
-#- # int ncGrabGetImageParams(NcGrab grab, void* imageNc, ImageParams imageParams);
-#- @inline ncGrabGetImageParams(grab::Grab, imageNc::Ptr{Void}, imageParams::ImageParams) =
-#-     @call(:ncGrabGetImageParams, Status,
-#-           (Grab, Ptr{Void}, ImageParams),
-#-           grab, imageNc, imageParams)
+function getImageParams(grab::Grab, image::Ptr{Void},
+                        imageParams::ImageParams{Grab})
+    # int ncGrabGetImageParams(NcGrab grab, void* image, ImageParams imageParams);
+    @call(:ncGrabGetImageParams, Status, (Grab, Ptr{Void}, ImageParams),
+          grab, image, imageParams)
+end
 
 @inline close(imageParams::ImageParams{Grab}) =
     # int ncGrabCloseImageParams(ImageParams imageParams);
@@ -833,11 +834,12 @@ getHeartbeat(cam) -> ms
     return value[]
 end
 
-#- # int ncCamGetImageParams(NcCam cam, void* imageNc, ImageParams imageParams);
-#- @inline ncCamGetImageParams(cam::Cam, imageNc::Ptr{Void}, imageParams::ImageParams) =
-#-     @call(:ncCamGetImageParams, Status,
-#-           (Cam, Ptr{Void}, ImageParams),
-#-           cam, imageNc, imageParams)
+function getImageParams(cam::Cam, image::Ptr{Void},
+                        imageParams::ImageParams{Cam})
+    # int ncCamGetImageParams(NcCam cam, void* image, ImageParams imageParams);
+    @call(:ncCamGetImageParams, Status, (Cam, Ptr{Void}, ImageParams),
+          cam, image, imageParams)
+end
 
 @inline close(imageParams::ImageParams{Cam}) =
     # int ncCamCloseImageParams(ImageParams imageParams);
