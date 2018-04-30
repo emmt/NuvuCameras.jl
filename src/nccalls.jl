@@ -167,15 +167,12 @@ for (jf, cf, T) in (
     # int ncControllerListGetPluginCount(const NcCtrlList ctrlList, int * listSize);
     (:getPluginCount, :ncControllerListGetPluginCount, Cint))
 
-    @eval begin
-
-        function $jf(ctrlList::CtrlList)
-            value = Ref{$T}()
-            @call($cf, Status, (CtrlList, Ptr{$T}), ctrlList, value)
-            return value[]
-        end
-
+    @eval function $jf(ctrlList::CtrlList)
+        value = Ref{$T}()
+        @call($cf, Status, (CtrlList, Ptr{$T}), ctrlList, value)
+        return value[]
     end
+
 end
 
 for (jf, cf, T) in (
@@ -195,19 +192,17 @@ for (jf, cf, T) in (
     # int ncControllerListGetFreePortReason(const NcCtrlList ctrlList, int index, enum NcPortUnusedReason* reason);
     (:getFreePortReason, :ncControllerListGetFreePortReason, PortUnusedReason))
 
-    @eval begin
-
-        function $jf(ctrlList::CtrlList, index::Integer)
-            value = Ref{$T}()
-            @call($cf, Status, (CtrlList, Cint, Ptr{$T}),
-                  ctrlList, index, value)
-            return value[]
-        end
-
+    @eval function $jf(ctrlList::CtrlList, index::Integer)
+        value = Ref{$T}()
+        @call($cf, Status, (CtrlList, Cint, Ptr{$T}),
+              ctrlList, index, value)
+        return value[]
     end
+
 end
 
 for (jf, cf) in (
+
     # int ncControllerListGetSerial(const NcCtrlList ctrlList, int index, char* serial, int serialSize);
     (:getSerial, :ncControllerListGetSerial),
 
@@ -233,28 +228,26 @@ for (jf, cf) in (
     (:getPluginName, :ncControllerListGetPluginName))
 
     qcf = QuoteNode(cf)
-    @eval begin
 
-        function $jf(ctrlList::CtrlList, index::Integer)
-            # Fisrt call to retrieve the number of bytes, then second call to
-            # retrieve the contents.
-            nbytes = @call($cf, Cint, (CtrlList, Cint, Ptr{Void}, Cint),
-                           ctrlList, index, C_NULL, 0)
-            if nbytes < 1
-                # Assume index was out of bound.
-                throw(NuvuCameraError($qcf, ERROR_OUT_OF_BOUNDS))
-            end
-            buf = Array{Cchar}(nbytes)
-            ptr = pointer(buf)
-            status = Status(@call($cf, Cint, (CtrlList, Cint, Ptr{Cchar}, Cint),
-                                  ctrlList, index, ptr, nbytes))
-            if status != SUCCESS
-                throw(NuvuCameraError($qcf, status))
-            end
-            return unsafe_string(ptr, nbytes - 1)
+    @eval function $jf(ctrlList::CtrlList, index::Integer)
+        # Fisrt call to retrieve the number of bytes, then second call to
+        # retrieve the contents.
+        nbytes = @call($cf, Cint, (CtrlList, Cint, Ptr{Void}, Cint),
+                       ctrlList, index, C_NULL, 0)
+        if nbytes < 1
+            # Assume index was out of bound.
+            throw(NuvuCameraError($qcf, ERROR_OUT_OF_BOUNDS))
         end
-
+        buf = Array{Cchar}(nbytes)
+        ptr = pointer(buf)
+        status = Status(@call($cf, Cint, (CtrlList, Cint, Ptr{Cchar}, Cint),
+                              ctrlList, index, ptr, nbytes))
+        if status != SUCCESS
+            throw(NuvuCameraError($qcf, status))
+        end
+        return unsafe_string(ptr, nbytes - 1)
     end
+
 end
 
 for (jf, cf, T1, T2) in (
@@ -265,17 +258,14 @@ for (jf, cf, T1, T2) in (
     # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
     (:getDetectorSize, :ncControllerListGetDetectorSize, Cint, Cint))
 
-    @eval begin
-
-        function $jf(ctrlList::CtrlList, index::Integer)
-            val1 = Ref{$T1}()
-            val2 = Ref{$T2}()
-            @call($cf, Status, (CtrlList, Cint, Ptr{$T1}, Ptr{$T2}),
-                  ctrlList, index, val1, val2)
-            return val1[], val2[]
-        end
-
+    @eval function $jf(ctrlList::CtrlList, index::Integer)
+        val1 = Ref{$T1}()
+        val2 = Ref{$T2}()
+        @call($cf, Status, (CtrlList, Cint, Ptr{$T1}, Ptr{$T2}),
+              ctrlList, index, val1, val2)
+        return val1[], val2[]
     end
+
 end
 
 
@@ -323,12 +313,7 @@ for (jf, cf) in (
     # int ncGrabCancelBiasCreation(NcGrab grab);
     (:cancelBiasCreation, :ncGrabCancelBiasCreation))
 
-    @eval begin
-
-        $jf(grab::Grab) =
-            @call($cf, Status, (Grab, ), grab)
-
-    end
+    @eval $jf(grab::Grab) = @call($cf, Status, (Grab, ), grab)
 
 end
 
@@ -364,12 +349,9 @@ for (jf, Tj, cf, Tc) in (
     # int ncGrabCreateBias(NcGrab grab, int nbrImages);
     (:createBias, Integer, :ncGrabCreateBias, Cint))
 
-    @eval begin
+    @eval $jf(grab::Grab, value::$Tj) =
+        @call($cf, Status, (Grab, $Tc), grab, value)
 
-        $jf(grab::Grab, value::$Tj) =
-            @call($cf, Status, (Grab, $Tc), grab, value)
-
-    end
 end
 
 function open(::Type{ImageParams{Grab}})
@@ -419,15 +401,12 @@ for (jf, cf, T) in (
     # int ncGrabSaveImageGetCompressionType(NcGrab grab, enum ImageCompression *compress);
     (:getSaveImageCompressionType, :ncGrabSaveImageGetCompressionType, ImageCompression))
 
-    @eval begin
-
-        function $jf(grab::Grab)
-            value = Ref{$T}()
-            @call($cf, Status, (Grab, Ptr{$T}), grab, value)
-            return value[]
-        end
-
+    @eval function $jf(grab::Grab)
+        value = Ref{$T}()
+        @call($cf, Status, (Grab, Ptr{$T}), grab, value)
+        return value[]
     end
+
 end
 
 # int ncGrabGetOverrun(NcGrab grab, int* overrunOccurred);
@@ -452,16 +431,14 @@ for (jf, cf, T1, T2) in (
     # int ncGrabReadChronologicalNonBlocking(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
     (:readChronologicalNonBlocking, :ncGrabReadChronologicalNonBlocking, Ptr{Image}, Cint))
 
-    @eval begin
-
-        function $jf(grab::Grab)
-            val1 = Ref{$T1}()
-            val2 = Ref{$T2}()
-            @call($cf, Status, (Grab, Ptr{$T1}, Ptr{$T2}),
-                  grab, val1, val2)
-            return val1[], val2[]
-        end
+    @eval function $jf(grab::Grab)
+        val1 = Ref{$T1}()
+        val2 = Ref{$T2}()
+        @call($cf, Status, (Grab, Ptr{$T1}, Ptr{$T2}),
+              grab, val1, val2)
+        return val1[], val2[]
     end
+
 end
 
 function saveImage(grab::Grab, image::Ptr{Image}, name::Name,
@@ -679,12 +656,7 @@ for (jf, cf) in (
     # int ncCamCancelBiasCreation(NcCam cam);
     (:cancelBiasCreation, :ncCamCancelBiasCreation))
 
-    @eval begin
-
-        $jf(cam::Cam) =
-            @call($cf, Status, (Cam, ), cam)
-
-    end
+    @eval $jf(cam::Cam) = @call($cf, Status, (Cam, ), cam)
 
 end
 
@@ -779,12 +751,9 @@ for (jf, Tj, cf, Tc) in (
     # int ncCamDeleteMRoi(NcCam cam, int index);
     (:deleteMRoi, Integer, :ncCamDeleteMRoi, Cint))
 
-    @eval begin
+    @eval $jf(cam::Cam, value::$Tj) =
+        @call($cf, Status, (Cam, $Tc), cam, value)
 
-        $jf(cam::Cam, value::$Tj) =
-            @call($cf, Status, (Cam, $Tc), cam, value)
-
-    end
 end
 
 """
@@ -842,16 +811,13 @@ for (jf, cf, T) in (
     # int ncCamReadFloatChronologicalNonBlocking(NcCam cam, float* imageAcqu, int* nbrImagesSkipped);
     (:readChronologicalNonBlocking, :ncCamReadFloatChronologicalNonBlocking, Cfloat))
 
-    @eval begin
-
-        function $jf(cam::Cam, img::Union{Ptr{$T},DenseMatrix{$T}})
-            nskip = Ref{Cint}()
-            @call($cf, Status, (Cam, Ptr{$T}, Ptr{Cint}),
-                  cam, img, nskip)
-            return nskip[]
-        end
-
+    @eval function $jf(cam::Cam, img::Union{Ptr{$T},DenseMatrix{$T}})
+        nskip = Ref{Cint}()
+        @call($cf, Status, (Cam, Ptr{$T}, Ptr{Cint}),
+              cam, img, nskip)
+        return nskip[]
     end
+
 end
 
 for (jf1, cf1, jf2, cf2, T) in (
@@ -930,15 +896,12 @@ for (jf, cf, T) in (
     # int ncCamGetStatusPollRate(NcCam cam, int * periodMs);
     (:getStatusPollRate, :ncCamGetStatusPollRate, Cint))
 
-    @eval begin
-
-        function $jf(cam::Cam)
-            value = Ref{$T}()
-            @call($cf, Status, (Cam, Ptr{$T}), cam, value)
-            return value[]
-        end
-
+    @eval function $jf(cam::Cam)
+        value = Ref{$T}()
+        @call($cf, Status, (Cam, Ptr{$T}), cam, value)
+        return value[]
     end
+
 end
 
 # int ncCamGetOverrun(NcCam cam, int* overrunOccurred);
@@ -988,16 +951,13 @@ for (jf, cf, T1, T2) in (
     # int ncCamGetFullCCDSize(NcCam cam, int *width, int *height);
     (:getFullCCDSize, :ncCamGetFullCCDSize, Cint, Cint))
 
-    @eval begin
-
-        function $jf(cam::Cam)
-            val1 = Ref{$T1}()
-            val2 = Ref{$T2}()
-            @call($cf, Status, (Cam, Ptr{$T1}, Ptr{$T2}), cam, va1, val2)
-            return val1[], val2[]
-        end
-
+    @eval function $jf(cam::Cam)
+        val1 = Ref{$T1}()
+        val2 = Ref{$T2}()
+        @call($cf, Status, (Cam, Ptr{$T1}, Ptr{$T2}), cam, va1, val2)
+        return val1[], val2[]
     end
+
 end
 
 for (cf, T) in (
@@ -1009,17 +969,14 @@ for (cf, T) in (
     # int ncCamSaveFloatImage(NcCam cam, const float *imageNc, const char *saveName, enum ImageFormat saveFormat, const char *addComments, int overwriteFlag);
     (:ncCamSaveFloatImage, Cfloat))
 
-    @eval begin
-
-        function saveImage(cam::Cam, img::Ptr{$T},
-                           name::Name, saveFormat::ImageFormat,
-                           comments::Name, overwrite::Bool)
-            @call($cf, Status,
-                  (Cam, Ptr{$T}, Cstring, ImageFormat, Cstring, Cint),
-                  cam, img, name, saveFormat, comments, overwrite)
-        end
-
+    @eval function saveImage(cam::Cam, img::Ptr{$T},
+                             name::Name, saveFormat::ImageFormat,
+                             comments::Name, overwrite::Bool)
+        @call($cf, Status,
+              (Cam, Ptr{$T}, Cstring, ImageFormat, Cstring, Cint),
+              cam, img, name, saveFormat, comments, overwrite)
     end
+
 end
 
 function saveImage(cam::Cam, image::Ptr{Void}, name::Name,
@@ -1227,17 +1184,13 @@ for (jf, cf, T) in (
     # int ncCamGetSerialCarTime(NcCam cam, int cameraRequest, double* serialCarTime);
     (:getSerialCarTime, :ncCamGetSerialCarTime, Cdouble))
 
-    @eval begin
-
-        function $jf(cam::Cam, req::Bool)
-            value = Ref{$T}()
-            @call($cf, Status, (Cam, Cint, Ptr{$T}), cam, req, value)
-            return value[]
-        end
-
+    @eval function $jf(cam::Cam, req::Bool)
+        value = Ref{$T}()
+        @call($cf, Status, (Cam, Cint, Ptr{$T}), cam, req, value)
+        return value[]
     end
-end
 
+end
 
 #- # int ncCamSetTriggerMode(NcCam cam, enum TriggerMode triggerMode, int nbrImages);
 #- ncCamSetTriggerMode(cam::Cam, triggerMode::TriggerMode, nbrImages::Cint) =
@@ -1306,26 +1259,24 @@ end
 #-           cam, offsetX, offsetY, width, height)
 
 for (jf, cf) in (
+
     # int ncCamGetMRoiInputRegion(ImageParams params, int index, int * offsetX, int * offsetY, int * width, int * height);
     (:getMRoiInputRegion, :ncCamGetMRoiInputRegion),
 
     # int ncCamGetMRoiOutputRegion(ImageParams params, int index, int * offsetX, int * offsetY, int * width, int * height);
     (:getMRoiOutputRegion, :ncCamGetMRoiOutputRegion))
 
-    @eval begin
-
-        function $jf(params::ImageParams{Cam}, index::Integer)
-            offsetX = Ref{Cint}()
-            offsetY = Ref{Cint}()
-            width = Ref{Cint}()
-            height = Ref{Cint}()
-            @call($cf, Status,
-                  (ImageParams, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-                  params, index, offsetX, offsetY, width, height)
-            return offsetX[], offsetY[], width[], height[]
-        end
-
+    @eval function $jf(params::ImageParams{Cam}, index::Integer)
+        offsetX = Ref{Cint}()
+        offsetY = Ref{Cint}()
+        width = Ref{Cint}()
+        height = Ref{Cint}()
+        @call($cf, Status,
+              (ImageParams, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
+              params, index, offsetX, offsetY, width, height)
+        return offsetX[], offsetY[], width[], height[]
     end
+
 end
 
 #- # int ncCamGetMRoiRegionCount(ImageParams params, int * count);
@@ -1545,9 +1496,6 @@ close(solutionSet::CropModeSolutions) =
 #-           (Cam, Ptr{Void}, Ptr{Void}),
 #-           cam, fct, data)
 
-
-
-
 setOnStatusAlertCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
     # int ncCamSetOnStatusAlertCallback(NcCam cam,
     #         void (*fct)(NcCam cam, void* data, int errorCode,
@@ -1572,6 +1520,7 @@ function open(::Type{Proc}, width::Integer, height::Integer)
 end
 
 for (jf, cf) in (
+
     # int ncProcClose(NcProc ctx);
     (:close, :ncProcClose),
 
@@ -1581,11 +1530,8 @@ for (jf, cf) in (
     # int ncProcEmptyStack(NcProc ctx);
     (:emptyStack, :ncProcEmptyStack))
 
-    @eval begin
+    @eval $jf(ctx::Proc) = @call($cf, Status, (Proc,), ctx)
 
-        $jf(ctx::Proc) = @call($cf, Status, (Proc,), ctx)
-
-    end
 end
 
 resize(ctx::Proc, width::Integer, height::Integer) =
@@ -1614,14 +1560,13 @@ for (jf, Tj, cf, Tc) in (
     # int ncProcSetOverscanLines(NcProc ctx, int overscanLines);
     (:setOverscanLines, Integer, :ncProcSetOverscanLines, Cint))
 
-    @eval begin
+    @eval $jf(ctx::Proc, value::$Tj) =
+        @call($cf, Status, (Proc, $Tc), ctx, value)
 
-        @eval $jf(ctx::Proc, value::$Tj) =
-            @call($cf, Status, (Proc, $Tc), ctx, value)
-    end
 end
 
 for (jf, cf, T) in (
+
     # int ncProcGetProcType(NcProc ctx, int *type);
     (:getType, :ncProcGetProcType, Cint),
 
@@ -1634,15 +1579,12 @@ for (jf, cf, T) in (
     # int ncProcGetOverscanLines(NcProc ctx, int *overscanLines);
     (:getOverscanLines, :ncProcGetOverscanLines, Cint))
 
-    @eval begin
-
-        function $jf(ctx::Proc)
-            value = Ref{$T}()
-            @call($jf, Status, (Proc, Ptr{$T}), ctx, value)
-            return value[]
-        end
-
+    @eval function $jf(ctx::Proc)
+        value = Ref{$T}()
+        @call($jf, Status, (Proc, Ptr{$T}), ctx, value)
+        return value[]
     end
+
 end
 
 processDataImageInPlaceForceType(ctx::Proc, image::Ptr{Image}, procType::Integer) =
