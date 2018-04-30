@@ -59,6 +59,8 @@ end
 # Pixel type for images (`unsigned short` in C code).
 const Image = UInt16
 
+const ImageBuffer{T} = Union{Ptr{T},DenseVector{T},DenseMatrix{T}}
+
 # FIXME: This definition should be automatically computed.
 struct TmStruct
     tm_sec::Cint         # Seconds.     [0-60] (1 leap second)

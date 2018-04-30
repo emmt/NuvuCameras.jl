@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 302 have been currently interfaced.
+# 307 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -70,15 +70,6 @@ end
 setTimeout(handle::Union{Cam,Grab}, ms::Real) =
     setTimeout(handle, rount(Cint, ms))
 
-function writeFileHeader(currentFile::ImageSaved, dataType::HeaderDataType,
-                         name::Name, value::Ptr{Void}, comment::Name)
-    # int ncWriteFileHeader(NcImageSaved *currentFile,
-    #         enum HeaderDataType dataType, const char *name,
-    #         const void *value, const char *comment);
-    @call(:ncWriteFileHeader, Status,
-          (ImageSaved, HeaderDataType, Cstring, Ptr{Void}, Cstring),
-          currentFile, dataType, name, value, comment)
-end
 
 function writeFileHeader(currentFile::ImageSaved, name::Name, value::Integer,
                          comment::Name)
@@ -104,7 +95,8 @@ readFileHeader(currentFile::ImageSaved, dataType::HeaderDataType, name::Name) =
 # int ncReadFileHeader(NcImageSaved *currentFile, enum HeaderDataType dataType,
 #         const char *name, const void *value);
 
-function readFileHeader(currentFile::ImageSaved, ::Type{Val{INT}}, name::Name)
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{INT}},
+                        name::Name)
     value = Ref{Cint}()
     @call(:ncReadFileHeader, Status,
           (ImageSaved, HeaderDataType, Cstring, Ptr{Cint}),
@@ -112,7 +104,8 @@ function readFileHeader(currentFile::ImageSaved, ::Type{Val{INT}}, name::Name)
     return value[]
 end
 
-function readFileHeader(currentFile::ImageSaved, ::Type{Val{DOUBLE}}, name::Name)
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{DOUBLE}},
+                        name::Name)
     value = Ref{Cdouble}()
     @call(:ncReadFileHeader, Status,
           (ImageSaved, HeaderDataType, Cstring, Ptr{Cdouble}),
@@ -120,21 +113,14 @@ function readFileHeader(currentFile::ImageSaved, ::Type{Val{DOUBLE}}, name::Name
     return value[]
 end
 
-function readFileHeader(currentFile::ImageSaved, ::Type{Val{STRING}}, name::Name)
+function readFileHeader(currentFile::ImageSaved, ::Type{Val{STRING}},
+                        name::Name)
     buf = Array{Cchar}(1024) # FIXME: potential issue here
     @call(:ncReadFileHeader, Status,
           (ImageSaved, HeaderDataType, Cstring, Ptr{Cchar}),
           currentFile, INT, name, buf)
     buf[end] = 0
     return unsafe_string(pointer(buf))
-end
-
-function getFileFormat(image::ImageSaved)
-    format = Ref{ImageFormat}()
-    # int ncImageGetFileFormat(NcImageSaved* image, enum ImageFormat* format);
-    @call(:ncImageGetFileFormat, Status, (ImageSaved, Ptr{ImageFormat}),
-          image, format)
-    return format[]
 end
 
 #------------------------------------------------------------------------------
@@ -152,118 +138,60 @@ function open(::Type{CtrlList}, basic::Bool = false)
     return ctrlList[]
 end
 
-close(ctrlList::CtrlList) =
-    # int ncControllerListFree(NcCtrlList ctrlList);
-    @call(:ncControllerListFree, Status, (CtrlList, ), ctrlList)
 
-for (jf, cf, T) in (
+for (m, f) in (
 
-    # int ncControllerListGetSize(const NcCtrlList ctrlList, int * listSize);
-    (:getSize, :ncControllerListGetSize, Cint),
-
-    # int ncControllerListGetFreePortCount(const NcCtrlList ctrlList, int * portCount);
-    (:getFreePortCount, :ncControllerListGetFreePortCount, Cint),
-
-    # int ncControllerListGetPluginCount(const NcCtrlList ctrlList, int * listSize);
-    (:getPluginCount, :ncControllerListGetPluginCount, Cint))
-
-    @eval function $jf(ctrlList::CtrlList)
-        value = Ref{$T}()
-        @call($cf, Status, (CtrlList, Ptr{$T}), ctrlList, value)
-        return value[]
-    end
-
-end
-
-for (jf, cf, T) in (
-
-    # int ncControllerListGetPortUnit(const NcCtrlList ctrlList, int index, int * unit);
-    (:getPortUnit, :ncControllerListGetPortUnit, Cint),
-
-    # int ncControllerListGetPortChannel(const NcCtrlList ctrlList, int index, int * channel);
-    (:getPortChannel, :ncControllerListGetPortChannel, Cint),
-
-    # int ncControllerListGetFreePortUnit(const NcCtrlList ctrlList, int index, int * unit);
-    (:getFreePortUnit, :ncControllerListGetFreePortUnit, Cint),
-
-    # int ncControllerListGetFreePortChannel(const NcCtrlList ctrlList, int index, int * channel);
-    (:getFreePortChannel, :ncControllerListGetFreePortChannel, Cint),
-
-    # int ncControllerListGetFreePortReason(const NcCtrlList ctrlList, int index, enum NcPortUnusedReason* reason);
-    (:getFreePortReason, :ncControllerListGetFreePortReason, PortUnusedReason))
-
-    @eval function $jf(ctrlList::CtrlList, index::Integer)
-        value = Ref{$T}()
-        @call($cf, Status, (CtrlList, Cint, Ptr{$T}),
-              ctrlList, index, value)
-        return value[]
-    end
-
-end
-
-for (jf, cf) in (
-
-    # int ncControllerListGetSerial(const NcCtrlList ctrlList, int index, char* serial, int serialSize);
+    # int ncControllerListGetSerial(const NcCtrlList ctrlList,
+    #         int index, char* serial, int serialSize);
     (:getSerial, :ncControllerListGetSerial),
 
-    # int ncControllerListGetModel(const NcCtrlList ctrlList, int index, char* model, int modelSize);
+    # int ncControllerListGetModel(const NcCtrlList ctrlList,
+    #         int index, char* model, int modelSize);
     (:getModel, :ncControllerListGetModel),
 
-    # int ncControllerListGetPortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
+    # int ncControllerListGetPortInterface(const NcCtrlList ctrlList,
+    #         int index, char* acqInterface, int acqInterfaceSize);
     (:getPortInterface, :ncControllerListGetPortInterface),
 
-    # int ncControllerListGetUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
+    # int ncControllerListGetUniqueID(const NcCtrlList ctrlList,
+    #         int index, char* uniqueID, int uniqueIDSize);
     (:getUniqueID, :ncControllerListGetUniqueID),
 
-    # int ncControllerListGetDetectorType(const NcCtrlList ctrlList, int index, char* detectorType, int detectorTypeSize);
+    # int ncControllerListGetDetectorType(const NcCtrlList ctrlList,
+    #         int index, char* detectorType, int detectorTypeSize);
     (:getDetectorType, :ncControllerListGetDetectorType),
 
-    # int ncControllerListGetFreePortInterface(const NcCtrlList ctrlList, int index, char* acqInterface, int acqInterfaceSize);
+    # int ncControllerListGetFreePortInterface(const NcCtrlList ctrlList,
+    #         int index, char* acqInterface, int acqInterfaceSize);
     (:getFreePortInterface, :ncControllerListGetFreePortInterface),
 
-    # int ncControllerListGetFreePortUniqueID(const NcCtrlList ctrlList, int index, char* uniqueID, int uniqueIDSize);
+    # int ncControllerListGetFreePortUniqueID(const NcCtrlList ctrlList,
+    #         int index, char* uniqueID, int uniqueIDSize);
     (:getFreePortUniqueID, :ncControllerListGetFreePortUniqueID),
 
-    # int ncControllerListGetPluginName(const NcCtrlList ctrlList, int index, char* pluginName, int pluginNameSize);
+    # int ncControllerListGetPluginName(const NcCtrlList ctrlList,
+    #         int index, char* pluginName, int pluginNameSize);
     (:getPluginName, :ncControllerListGetPluginName))
 
-    qcf = QuoteNode(cf)
+    qf = QuoteNode(f)
 
-    @eval function $jf(ctrlList::CtrlList, index::Integer)
+    @eval function $m(ctrlList::CtrlList, index::Integer)
         # Fisrt call to retrieve the number of bytes, then second call to
         # retrieve the contents.
-        nbytes = @call($cf, Cint, (CtrlList, Cint, Ptr{Void}, Cint),
+        nbytes = @call($f, Cint, (CtrlList, Cint, Ptr{Void}, Cint),
                        ctrlList, index, C_NULL, 0)
         if nbytes < 1
             # Assume index was out of bound.
-            throw(NuvuCameraError($qcf, ERROR_OUT_OF_BOUNDS))
+            throw(NuvuCameraError($qf, ERROR_OUT_OF_BOUNDS))
         end
         buf = Array{Cchar}(nbytes)
         ptr = pointer(buf)
-        status = Status(@call($cf, Cint, (CtrlList, Cint, Ptr{Cchar}, Cint),
+        status = Status(@call($f, Cint, (CtrlList, Cint, Ptr{Cchar}, Cint),
                               ctrlList, index, ptr, nbytes))
         if status != SUCCESS
-            throw(NuvuCameraError($qcf, status))
+            throw(NuvuCameraError($qf, status))
         end
         return unsafe_string(ptr, nbytes - 1)
-    end
-
-end
-
-for (jf, cf, T1, T2) in (
-
-    # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
-    (:getFullSizeSize, :ncControllerListGetFullSizeSize, Cint, Cint),
-
-    # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList, int index, int* detectorSizeX, int* detectorSizeY);
-    (:getDetectorSize, :ncControllerListGetDetectorSize, Cint, Cint))
-
-    @eval function $jf(ctrlList::CtrlList, index::Integer)
-        val1 = Ref{$T1}()
-        val2 = Ref{$T2}()
-        @call($cf, Status, (CtrlList, Cint, Ptr{$T1}, Ptr{$T2}),
-              ctrlList, index, val1, val2)
-        return val1[], val2[]
     end
 
 end
@@ -285,73 +213,14 @@ function open(::Type{Grab}, unit::Integer, channel::Integer,
     return grab[]
 end
 
-function open(::Type{Grab}, ctrlList::CtrlList, index::Integer, nbrBuffer::Integer)
+function open(::Type{Grab}, ctrlList::CtrlList, index::Integer,
+              nbrBuffer::Integer)
     grab = Ref{Grab}()
-    # int ncGrabOpenFromList(const NcCtrlList ctrlList, int index, int nbrBuffer, NcGrab* grab);
+    # int ncGrabOpenFromList(const NcCtrlList ctrlList, int index,
+    #         int nbrBuffer, NcGrab* grab);
     @call(:ncGrabOpenFromList, Status, (CtrlList, Cint, Cint, Ptr{Grab}),
           ctrlList, index, nbrBuffer, grab)
     return grab[]
-end
-
-for (jf, cf) in (
-
-    # int ncGrabClose(NcGrab grab);
-    (:close, :ncGrabClose),
-
-    # int ncGrabCancelEvent(NcGrab grab);
-    (:cancelEvent, :ncGrabCancelEvent),
-
-    # int ncGrabAbort(NcGrab grab);
-    (:abort, :ncGrabAbort),
-
-    # int ncGrabFlushReadQueues(NcGrab grab);
-    (:flushReadQueues, :ncGrabFlushReadQueues),
-
-    # int ncGrabStopSaveAcquisition(NcGrab grab);
-    (:stopSaveAcquisition, :ncGrabStopSaveAcquisition),
-
-    # int ncGrabCancelBiasCreation(NcGrab grab);
-    (:cancelBiasCreation, :ncGrabCancelBiasCreation))
-
-    @eval $jf(grab::Grab) = @call($cf, Status, (Grab, ), grab)
-
-end
-
-for (jf, Tj, cf, Tc) in (
-
-    # int ncGrabStart(NcGrab grab, int nbrImages);
-    (:start, Integer, :ncGrabStart, Cint),
-
-    # int ncGrabSetHeartbeat(NcGrab grab, int timeMs);
-    (:setHeartbeat, Integer, :ncGrabSetHeartbeat, Cint),
-
-    # int ncGrabSetTimeout(NcGrab grab, int timeMs);
-    (:setTimeout, Integer, :ncGrabSetTimeout, Cint),
-
-    # int ncGrabSetTimestampMode(NcGrab grab, enum TimestampMode timestampMode);
-    (:setTimestampMode, TimestampMode, :ncGrabSetTimestampMode, TimestampMode),
-
-    # int ncGrabSetSerialTimeout(NcGrab grab, int serialTimeout);
-    (:setSerialTimeout, Integer, :ncGrabSetSerialTimeout, Cint),
-
-    # int ncGrabSetBaudrate(NcGrab grab, int baudrateSpeed);
-    (:setBaudrate, Integer, :ncGrabSetBaudrate, Cint),
-
-    # int ncGrabSaveImageSetCompressionType(NcGrab grab, enum ImageCompression compress);
-    (:setSaveImageCompressionType, ImageCompression, :ncGrabSaveImageSetCompressionType, ImageCompression),
-
-    # int ncGrabLoadParam(NcGrab grab, const char *saveName);
-    (:loadParam, Name, :ncGrabLoadParam, Cstring),
-
-    # int ncGrabResetTimer(NcGrab grab, double timeOffset);
-    (:resetTimer, Real, :ncGrabResetTimer, Cdouble),
-
-    # int ncGrabCreateBias(NcGrab grab, int nbrImages);
-    (:createBias, Integer, :ncGrabCreateBias, Cint))
-
-    @eval $jf(grab::Grab, value::$Tj) =
-        @call($cf, Status, (Grab, $Tc), grab, value)
-
 end
 
 function open(::Type{ImageParams{Grab}})
@@ -359,107 +228,6 @@ function open(::Type{ImageParams{Grab}})
     # int ncGrabOpenImageParams(ImageParams *imageParams);
     @call(:ncGrabOpenImageParams, Status, (Ptr{ImageParams}, ), value)
     return value[]
-end
-
-function getImageParams(grab::Grab, image::Ptr{Void},
-                        imageParams::ImageParams{Grab})
-    # int ncGrabGetImageParams(NcGrab grab, void* image, ImageParams imageParams);
-    @call(:ncGrabGetImageParams, Status, (Grab, Ptr{Void}, ImageParams),
-          grab, image, imageParams)
-end
-
-close(imageParams::ImageParams{Grab}) =
-    # int ncGrabCloseImageParams(ImageParams imageParams);
-    @call(:ncGrabCloseImageParams, Status, (ImageParams, ), imageParams)
-
-for (jf, cf, T) in (
-
-    # int ncGrabRead(NcGrab grab, NcImage** imageAcqu);
-    (:raed, :ncGrabRead, Ptr{Image}),
-
-    # int ncGrabGetNbrDroppedImages(NcGrab grab, int* nbrDroppedImages);
-    (:getNbrDroppedImages, :ncGrabGetNbrDroppedImages, Cint),
-
-    # int ncGrabGetNbrTimeout(NcGrab grab, int* nbrTimeout);
-    (:getNbrTimeout, :ncGrabGetNbrTimeout, Cint),
-
-    # int ncGrabGetTimeout(NcGrab grab, int* timeTimeout);
-    (:getTimeout, :ncGrabGetTimeout, Cint),
-
-    # int ncGrabGetHeartbeat(NcGrab grab, int *timeMs);
-    (:gGetHeartbeat, :ncGrabGetHeartbeat, Cint),
-
-    # int ncGrabGetSerialTimeout(NcGrab grab, int *serialTimeout);
-    (:gGetSerialTimeout, :ncGrabGetSerialTimeout, Cint),
-
-    # int ncGrabGetSerialUnreadBytes(NcGrab grab, int* numByte);
-    (:gGetSerialUnreadBytes, :ncGrabGetSerialUnreadBytes, Cint),
-
-    # int ncGrabNbrImagesAcquired(NcGrab grab, int *nbrImages);
-    (:nbrImagesAcquired, :ncGrabNbrImagesAcquired, Cint),
-
-    # int ncGrabSaveImageGetCompressionType(NcGrab grab, enum ImageCompression *compress);
-    (:getSaveImageCompressionType, :ncGrabSaveImageGetCompressionType, ImageCompression))
-
-    @eval function $jf(grab::Grab)
-        value = Ref{$T}()
-        @call($cf, Status, (Grab, Ptr{$T}), grab, value)
-        return value[]
-    end
-
-end
-
-# int ncGrabGetOverrun(NcGrab grab, int* overrunOccurred);
-function getOverrun(grab::Grab)
-    value = Ref{Cint}()
-    @call(:ncGrabGetOverrun, Status, (Grab, Ptr{Cint}), grab, value)
-    return (value[] != 0)
-end
-
-setSize(grab::Grab, width::Integer, height::Integer) =
-    # int ncGrabSetSize(NcGrab grab, int width, int height);
-    @call(:ncGrabSetSize, Status, (Grab, Cint, Cint), grab, width, height)
-
-for (jf, cf, T1, T2) in (
-
-    # int ncGrabGetSize(NcGrab grab, int* width, int* height);
-    (:getSize, :ncGrabGetSize, Cint, Cint),
-
-    # int ncGrabReadChronological(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
-    (:readChronological, :ncGrabReadChronological, Ptr{Image}, Cint),
-
-    # int ncGrabReadChronologicalNonBlocking(NcGrab grab, NcImage** imageAcqu, int* nbrImagesSkipped);
-    (:readChronologicalNonBlocking, :ncGrabReadChronologicalNonBlocking, Ptr{Image}, Cint))
-
-    @eval function $jf(grab::Grab)
-        val1 = Ref{$T1}()
-        val2 = Ref{$T2}()
-        @call($cf, Status, (Grab, Ptr{$T1}, Ptr{$T2}),
-              grab, val1, val2)
-        return val1[], val2[]
-    end
-
-end
-
-function saveImage(grab::Grab, image::Ptr{Image}, name::Name,
-                   saveFormat::ImageFormat, overwrite::Bool)
-    # int ncGrabSaveImage(NcGrab grab, const NcImage* imageNc,
-    #         const char* saveName, enum ImageFormat saveFormat,
-    #         int overwriteFlag);
-    @call(:ncGrabSaveImage, Status,
-          (Grab, Ptr{Image}, Cstring, ImageFormat, Cint),
-          grab, image, name, saveFormat, overwrite)
-end
-
-function saveImage(grab::Grab, image::Ptr{Void}, name::Name,
-                   imageFormat::ImageFormat, dataFormat::ImageDataType,
-                   overwrite::Bool)
-    # int ncGrabSaveImageEx(NcGrab grab, const void* imageNc,
-    #         const char* saveName, enum ImageFormat saveFormat,
-    #         enum ImageDataType dataFormat, int overwriteFlag);
-    @call(:ncGrabSaveImageEx, Status,
-          (Grab, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cint),
-          grab, image, name, imageFormat, dataFormat, overwrite)
 end
 
 function saveImage(grab::Grab, image::Ptr{T}, name::Name,
@@ -473,27 +241,6 @@ function saveImage(grab::Grab, image::DenseMatrix{<:PixelTypes}, name::Name,
                    saveFormat::ImageFormat, overwrite::Bool)
     saveImage(grab, pointer(image), name, saveFormat, overwrite)
 end
-
-function startSaveAcquisition(grab::Grab, saveName::Name,
-                              saveFormat::ImageFormat, imagesPerCubes::Integer,
-                              nbrOfCubes::Integer, overwrite::Bool)
-    # int ncGrabStartSaveAcquisition(NcGrab grab, const char *saveName,
-    #         enum ImageFormat saveFormat,
-    #         int imagesPerCubes, int nbrOfCubes,
-    #         int overwriteFlag);
-    @call(:ncGrabStartSaveAcquisition, Status,
-          (Grab, Cstring, ImageFormat, Cint, Cint, Cint),
-          grab, saveName, saveFormat, imagesPerCubes, nbrOfCubes, overwrite)
-end
-
-
-ncGrabSaveParam(grab::Grab, name::Name, overwrite::Bool) =
-    # int ncGrabSaveParam(NcGrab grab, const char *saveName, int overwriteFlag);
-    @call(:ncGrabSaveParam, Status, (Grab, Cstring, Cint),
-          grab, name, overwrite)
-
-
-
 
 #- # int ncGrabParamAvailable(NcGrab grab, enum Features param, int setting);
 #- ncGrabParamAvailable(grab::Grab, param::Features, setting::Cint) =
@@ -526,19 +273,6 @@ ncGrabSaveParam(grab::Grab, name::Name, overwrite::Bool) =
 #-           (Grab, VersionType, Ptr{Cchar}, Cint),
 #-           grab, versionType, version, bufferSize)
 
-#- # int ncGrabSetProcType(NcGrab grab, int type, int nbrImagesPc);
-#- ncGrabSetProcType(grab::Grab, _type::Cint, nbrImagesPc::Cint) =
-#-     @call(:ncGrabSetProcType, Status,
-#-           (Grab, Cint, Cint),
-#-           grab, _type, nbrImagesPc)
-
-#- # int ncGrabGetProcType(NcGrab grab, int * type, int * nbrImagesPc);
-#- ncGrabGetProcType(grab::Grab, _type::Ptr{Cint}, nbrImagesPc::Ptr{Cint}) =
-#-     @call(:ncGrabGetProcType, Status,
-#-           (Grab, Ptr{Cint}, Ptr{Cint}),
-#-           grab, _type, nbrImagesPc)
-
-
 
 #------------------------------------------------------------------------------
 # CAMERA FUNCTIONS
@@ -560,143 +294,13 @@ function open(::Type{Cam}, unit::Integer, channel::Integer, nbrBuffer::Integer)
     return cam[]
 end
 
-function open(::Type{Cam}, ctrlList::CtrlList, index::Integer, nbrBuffer::Integer)
+function open(::Type{Cam}, ctrlList::CtrlList, index::Integer,
+              nbrBuffer::Integer)
     cam = Ref{Cam}()
     # int ncCamOpenFromList(const NcCtrlList ctrlList, int index, int nbrBuffer, NcCam* cam);
     @call(:ncCamOpenFromList, Status, (CtrlList, Cint, Cint, Ptr{Cam}),
           ctrlList, index, nbrBuffer, cam)
     return cam[]
-end
-
-for (jf, cf) in (
-    # int ncCamClose(NcCam cam);
-    (:close, :ncCamClose),
-
-    # int ncCamBeginAcquisition(NcCam cam);
-    (:beginAcquisition, :ncCamBeginAcquisition),
-
-    # int ncCamAbort(NcCam cam);
-    (:abort, :ncCamAbort),
-
-    # int ncCamFlushReadQueues(NcCam cam);
-    (:flushReadQueues, :ncCamFlushReadQueues),
-
-    # int ncCamStopSaveAcquisition(NcCam cam);
-    (:stopSaveAcquisition, :ncCamStopSaveAcquisition),
-
-    # int ncCamCancelEvent(NcCam cam);
-    (:cancelEvent, :ncCamCancelEvent),
-
-    # int ncCamMRoiApply(NcCam cam);
-    (:applyMRoi, :ncCamMRoiApply),
-
-    # int ncCamMRoiRollback(NcCam cam);
-    (:rollbackMRoi, :ncCamMRoiRollback),
-
-    # int ncCamCancelBiasCreation(NcCam cam);
-    (:cancelBiasCreation, :ncCamCancelBiasCreation))
-
-    @eval $jf(cam::Cam) = @call($cf, Status, (Cam, ), cam)
-
-end
-
-
-for (jf, Tj, cf, Tc) in (
-
-    # int ncCamStart(NcCam cam, int nbrImages);
-    (:start, Integer, :ncCamStart, Cint),
-
-    # int ncCamPrepareAcquisition(NcCam cam, int nbrImages);
-    (:prepareAcquisition, Integer, :ncCamPrepareAcquisition, Cint),
-
-    # int ncCamSetHeartbeat(NcCam cam, int timeMs);
-    (:setHeartbeat, Integer, :ncCamSetHeartbeat, Cint),
-
-    # int ncCamResetTimer(NcCam cam, double timeOffset);
-    (:resetTimer, Real, :ncCamResetTimer, Cdouble),
-
-    # int ncCamSetTimeout(NcCam cam, int timeMs);
-    (:setTimeout, Integer, :ncCamSetTimeout, Cint),
-
-    # int ncCamSetTimestampMode(NcCam cam, enum TimestampMode timestampMode);
-    (:setTimestampMode, TimestampMode, :ncCamSetTimestampMode, TimestampMode),
-
-    # int ncCamReadUInt32(NcCam cam, uint32_t *image);
-    (:read, Union{Ptr{UInt32},DenseMatrix{UInt32}}, :ncCamReadUInt32,
-     Ptr{UInt32}),
-
-    # int ncCamReadFloat(NcCam cam, float *image);
-    (:read, Union{Ptr{Cfloat},DenseMatrix{Cfloat}}, :ncCamReadUInt32,
-     Ptr{Cfloat}),
-
-    # int ncCamLoadParam(NcCam cam, const char *saveName);
-    (:loadParam, Name, :ncCamLoadParam, Cstring),
-
-    # int ncCamSetReadoutMode(NcCam cam, int value);
-    (:setReadoutMode, Integer, :ncCamSetReadoutMode, Cint),
-
-    # int ncCamSetExposureTime(NcCam cam, double exposureTime);
-    (:setExposureTime, Real, :ncCamSetExposureTime, Cdouble),
-
-    # int ncCamSetWaitingTime(NcCam cam, double waitingTime);
-    (:setWaitingTime, Real, :ncCamSetWaitingTime, Cdouble),
-
-    # int ncCamSetShutterMode(NcCam cam, enum ShutterMode shutterMode);
-    (:setShutterMode, ShutterMode, :ncCamSetShutterMode, ShutterMode),
-
-    # int ncCamSetShutterPolarity(NcCam cam, enum ExtPolarity shutterPolarity);
-    (:setShutterPolarity, ExtPolarity, :ncCamSetShutterPolarity, ExtPolarity),
-
-    # int ncCamSetExternalShutter(NcCam cam,
-    #         enum ExtShutter externalShutterPresence);
-    (:setExternalShutter, ExtShutter, :ncCamSetExternalShutter, ExtShutter),
-
-    # int ncCamSetExternalShutterMode(NcCam cam,
-    #         enum ShutterMode externalShutterMode);
-    (:setExternalShutterMode, ShutterMode, :ncCamSetExternalShutterMode,
-     ShutterMode),
-
-    # int ncCamSetExternalShutterDelay(NcCam cam,
-    #         double externalShutterDelay);
-    (:setExternalShutterDelay, Real, :ncCamSetExternalShutterDelay, Cdouble),
-
-    # int ncCamSetFirePolarity(NcCam cam, enum ExtPolarity firePolarity);
-    (:setFirePolarity, ExtPolarity, :ncCamSetFirePolarity, ExtPolarity),
-
-    # int ncCamSetOutputMinimumPulseWidth(NcCam cam, double outputPulseWidth);
-    (:setOutputMinimumPulseWidth, Real, :ncCamSetOutputMinimumPulseWidth,
-     Cdouble),
-
-    # int ncCamSetArmPolarity(NcCam cam, enum ExtPolarity armPolarity);
-    (:setArmPolarity, ExtPolarity, :ncCamSetArmPolarity, ExtPolarity),
-
-    # int ncCamSetCalibratedEmGain(NcCam cam, int calibratedEmGain);
-    (:setCalibratedEmGain, Integer, :ncCamSetCalibratedEmGain, Cint),
-
-    # int ncCamSetRawEmGain(NcCam cam, int rawEmGain);
-    (:setRawEmGain, Integer, :ncCamSetRawEmGain, Cint),
-
-    # int ncCamSetAnalogGain(NcCam cam, int analogGain);
-    (:setAnalogGain, Integer, :ncCamSetAnalogGain, Cint),
-
-    # int ncCamSetAnalogOffset(NcCam cam, int analogOffset);
-    (:setAnalogOffset, Integer, :ncCamSetAnalogOffset, Cint),
-
-    # int ncCamSetTargetDetectorTemp(NcCam cam, double targetDetectorTemp);
-    (:setTargetDetectorTemp, Real, :ncCamSetTargetDetectorTemp, Cdouble),
-
-    # int ncCamSetStatusPollRate(NcCam cam, int periodMs);
-    (:setStatusPollRate, Integer, :ncCamSetStatusPollRate, Cint),
-
-    # int ncCamSetSerialCarTime(NcCam cam, double serialCarTime);
-    (:setSerialCarTime, Real, :ncCamSetSerialCarTime, Cdouble),
-
-    # int ncCamDeleteMRoi(NcCam cam, int index);
-    (:deleteMRoi, Integer, :ncCamDeleteMRoi, Cint))
-
-    @eval $jf(cam::Cam, value::$Tj) =
-        @call($cf, Status, (Cam, $Tc), cam, value)
-
 end
 
 """
@@ -729,45 +333,7 @@ function open(::Type{ImageParams{Cam}})
     return value[]
 end
 
-function getImageParams(cam::Cam, image::Ptr{Void},
-                        imageParams::ImageParams{Cam})
-    # int ncCamGetImageParams(NcCam cam, void* image, ImageParams imageParams);
-    @call(:ncCamGetImageParams, Status, (Cam, Ptr{Void}, ImageParams),
-          cam, image, imageParams)
-end
 
-close(imageParams::ImageParams{Cam}) =
-    # int ncCamCloseImageParams(ImageParams imageParams);
-    @call(:ncCamCloseImageParams, Status, (ImageParams, ), imageParams)
-
-for (jf, cf, T) in (
-
-    # int ncCamReadUInt32Chronological(NcCam cam, uint32_t* imageAcqu,
-    #         int* nbrImagesSkipped);
-    (:readChronological, :ncCamReadUInt32Chronological, UInt32),
-
-    # int ncCamReadFloatChronological(NcCam cam, float* imageAcqu,
-    #         int* nbrImagesSkipped);
-    (:readChronological, :ncCamReadFloatChronological, Cfloat),
-
-    # int ncCamReadUInt32ChronologicalNonBlocking(NcCam cam,
-    #         uint32_t* imageAcqu, int* nbrImagesSkipped);
-    (:readChronologicalNonBlocking, :ncCamReadUInt32ChronologicalNonBlocking,
-     UInt32),
-
-    # int ncCamReadFloatChronologicalNonBlocking(NcCam cam, float* imageAcqu,
-    #         int* nbrImagesSkipped);
-    (:readChronologicalNonBlocking, :ncCamReadFloatChronologicalNonBlocking,
-     Cfloat))
-
-    @eval function $jf(cam::Cam, img::Union{Ptr{$T},DenseMatrix{$T}})
-        nskip = Ref{Cint}()
-        @call($cf, Status, (Cam, Ptr{$T}, Ptr{Cint}),
-              cam, img, nskip)
-        return nskip[]
-    end
-
-end
 
 for (jf1, cf1, jf2, cf2, T) in (
 
@@ -804,163 +370,6 @@ getOverrun(cam) -> ovr
 ```
 """ getOverrun
 
-for (jf, cf, T) in (
-    # int ncCamRead(NcCam cam, NcImage** imageAcqu);
-    (:read, :ncCamRead, Ptr{Image}),
-
-    # int ncCamGetHeartbeat(NcCam cam, int *timeMs);
-    (:getHeartbeat, :ncCamGetHeartbeat, Cint),
-
-    # int ncCamGetNbrDroppedImages(NcCam cam, int* nbrDroppedImages);
-    (:getNbrDroppedImages, :ncCamGetNbrDroppedImages, Cint),
-
-    # int ncCamGetNbrTimeout(NcCam cam, int* nbrTimeout);
-    (:getNbrTimeout, :ncCamGetNbrTimeout, Cint),
-
-    # int ncCamGetTimeout(NcCam cam, int* timeTimeout);
-    (:getTimeout, :ncCamGetTimeout, Cint),
-
-    # int ncCamGetNbrReadoutModes(NcCam cam, int* nbrReadoutMode);
-    (:getNbrReadoutModes, :ncCamGetNbrReadoutModes, Cint),
-
-    # int ncCamGetReadoutTime(NcCam cam, double *time);
-    (:getReadoutTime, :ncCamGetReadoutTime, Cdouble),
-
-    # int ncCamGetOverscanLines(NcCam cam, int *overscanLines);
-    (:getOverscanLines, :ncCamGetOverscanLines, Cint),
-
-    # int ncCamGetFrameLatency(NcCam cam, int *frameLatency);
-    (:getFrameLatency, :ncCamGetFrameLatency, Cint),
-
-    # int ncCamGetDetectorTemp(NcCam cam, double* detectorTemp);
-    (:getDetectorTemp, :ncCamGetDetectorTemp, Cdouble),
-
-    # int ncCamGetDetectorType(NcCam cam, enum DetectorType *type);
-    (:getDetectorType, :ncCamGetDetectorType, DetectorType),
-
-    # int ncCamGetMRoiCount(NcCam cam, int * count);
-    (:getMRoiCount, :ncCamGetMRoiCount, Cint),
-
-    # int ncCamGetMRoiCountMax(NcCam cam, int * count);
-    (:getMRoiCountMax, :ncCamGetMRoiCountMax, Cint),
-
-    # int ncCamGetStatusPollRate(NcCam cam, int * periodMs);
-    (:getStatusPollRate, :ncCamGetStatusPollRate, Cint))
-
-    @eval function $jf(cam::Cam)
-        value = Ref{$T}()
-        @call($cf, Status, (Cam, Ptr{$T}), cam, value)
-        return value[]
-    end
-
-end
-
-# int ncCamGetOverrun(NcCam cam, int* overrunOccurred);
-function getOverrun(cam::Cam)
-    value = Ref{Cint}()
-    @call(:ncCamGetOverrun, Status, (Cam, Ptr{Cint}), cam, value)
-    return (value[] != 0)
-end
-
-for (jf, cf, T1, T2) in (
-
-    # int ncCamGetSize(NcCam cam, int *width, int *height);
-    (:getSize, :ncCamGetSize, Cint, Cint),
-
-    # int ncCamGetMaxSize(NcCam cam, int *width, int *height);
-    (:getMaxSize, :ncCamGetMaxSize, Cint, Cint),
-
-    # int ncCamReadChronological(NcCam cam, NcImage** imageAcqu,
-    #         int* nbrImagesSkipped);
-    (:readChronological, :ncCamReadChronological, Ptr{Image}, Cint),
-
-    # int ncCamReadChronologicalNonBlocking(NcCam cam, NcImage **imageAcqu,
-    #         int* nbrImagesSkipped);
-    (:readChronologicalNonBlocking, :ncCamReadChronologicalNonBlocking,
-     Ptr{Image}, Cint),
-
-    # int ncCamGetCalibratedEmGainRange(NcCam cam, int* calibratedEmGainMin,
-    #         int* calibratedEmGainMax);
-    (:getCalibratedEmGainRange, :ncCamGetCalibratedEmGainRange, Cint, Cint),
-
-    # int ncCamGetCalibratedEmGainTempRange(NcCam cam,
-    #         double* calibratedEmGainTempMin,
-    #         double* calibratedEmGainTempMax);
-    (:getCalibratedEmGainTempRange, :ncCamGetCalibratedEmGainTempRange,
-     Cdouble, Cdouble),
-
-    # int ncCamGetRawEmGainRange(NcCam cam, int* rawEmGainMin,
-    #         int* rawEmGainMax);
-    (:getRawEmGainRange, :ncCamGetRawEmGainRange, Cint, Cint),
-
-    # int ncCamGetAnalogGainRange(NcCam cam, int* analogGainMin,
-    #         int* analogGainMax);
-    (:getAnalogGainRange, :ncCamGetAnalogGainRange, Cint, Cint),
-
-    # int ncCamGetAnalogOffsetRange(NcCam cam, int* analogOffsetMin,
-    #         int* analogOffsetMax);
-    (:getAnalogOffsetRange, :ncCamGetAnalogOffsetRange, Cint, Cint),
-
-    # int ncCamGetTargetDetectorTempRange(NcCam cam,
-    #         double *targetDetectorTempMin, double *targetDetectorTempMax);
-    (:getTargetDetectorTempRange, :ncCamGetTargetDetectorTempRange,
-     Cdouble, Cdouble),
-
-    # int ncCamGetBinningMode(NcCam cam, int *binXValue, int *binYValue);
-    (:getBinningMode, :ncCamGetBinningMode, Cint, Cint),
-
-    # int ncCamGetActiveRegion(NcCam cam, int *width, int *height);
-    (:getActiveRegion, :ncCamGetActiveRegion, Cint, Cint),
-
-    # int ncCamGetFullCCDSize(NcCam cam, int *width, int *height);
-    (:getFullCCDSize, :ncCamGetFullCCDSize, Cint, Cint))
-
-    @eval function $jf(cam::Cam)
-        val1 = Ref{$T1}()
-        val2 = Ref{$T2}()
-        @call($cf, Status, (Cam, Ptr{$T1}, Ptr{$T2}), cam, va1, val2)
-        return val1[], val2[]
-    end
-
-end
-
-for (cf, T) in (
-    # int ncCamSaveImage(NcCam cam, const NcImage* imageNc,
-    #         const char* saveName, enum ImageFormat saveFormat,
-    #         const char* addComments, int overwriteFlag);
-    (:ncCamSaveImage, Image),
-    # int ncCamSaveUInt32Image(NcCam cam, const uint32_t *imageNc,
-    #         const char *saveName, enum ImageFormat saveFormat,
-    #         const char *addComments, int overwriteFlag);
-    (:ncCamSaveUInt32Image, UInt32),
-
-    # int ncCamSaveFloatImage(NcCam cam, const float *imageNc,
-    #         const char *saveName, enum ImageFormat saveFormat,
-    #         const char *addComments, int overwriteFlag);
-    (:ncCamSaveFloatImage, Cfloat))
-
-    @eval function saveImage(cam::Cam, img::Ptr{$T},
-                             name::Name, saveFormat::ImageFormat,
-                             comments::Name, overwrite::Bool)
-        @call($cf, Status,
-              (Cam, Ptr{$T}, Cstring, ImageFormat, Cstring, Cint),
-              cam, img, name, saveFormat, comments, overwrite)
-    end
-
-end
-
-function saveImage(cam::Cam, image::Ptr{Void}, name::Name,
-                   saveFormat::ImageFormat, dataFormat::ImageDataType,
-                   comments::Name, overwrite::Bool) <:PixelTypes
-    # int ncCamSaveImageEx(NcCam cam, const void * imageNc,
-    #         const char* saveName, enum ImageFormat saveFormat,
-    #         enum ImageDataType dataFormat,
-    #         const char* addComments, int overwriteFlag);
-    @call(:ncCamSaveImageEx, Status,
-          (Cam, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cstring, Cint),
-          cam, image, name, saveFormat, dataFormat, comments, overwrite)
-end
-
 function saveImage(cam::Cam, image::Ptr{T}, name::Name,
                    saveFormat::ImageFormat, comments::Name,
                    overwrite::Bool) where {T<:Union{UInt64}}
@@ -971,19 +380,6 @@ end
 function saveImage(cam::Cam, image::DenseMatrix{<:PixelTypes}, name::Name,
                    saveFormat::ImageFormat, comments::Name, overwrite::Bool)
     saveImage(cam, pointer(image), name, saveFormat, comments, overwrite)
-end
-
-function startSaveAcquisition(cam::Cam, saveName::Cstring,
-                              saveFormat::ImageFormat, imagesPerCubes::Integer,
-                              addComments::Cstring, nbrOfCubes::Integer,
-                              overwrite::Bool)
-    # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName,
-    #         enum ImageFormat saveFormat, int imagesPerCubes,
-    #         const char *addComments, int nbrOfCubes, int overwriteFlag);
-    @call(:ncCamStartSaveAcquisition, Status,
-          (Cam, Cstring, ImageFormat, Cint, Cstring, Cint, Cint),
-          cam, saveName, saveFormat, imagesPerCubes, addComments,
-          nbrOfCubes, overwriteFlag)
 end
 
 #- # int ncCamSaveImageSetCompressionType(NcCam cam, enum ImageCompression compress);
@@ -1002,94 +398,14 @@ end
 #------------------------------------------------------------------------------
 # TIMESTAMP FUNCTIONS
 
-for (H, cf) in (
-
-    # int ncGrabGetTimestampMode(NcGrab grab, int ctrlRequest,
-    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
-    (Grab, :ncGrabGetTimestampMode),
-
-    # int ncCamGetTimestampMode(NcCam cam, int cameraRequest,
-    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
-    (Cam, :ncCamGetTimestampMode))
-
-    @eval function getTimestampMode(handle::$H, cameraRequest::Bool)
-        timestampMode = Ref{TimestampMode}()
-        gpsSignalValid = Ref{Cint}()
-        @call($cf, Status, ($H, Cint, Ptr{TimestampMode}, Ptr{Cint}),
-              handle, cameraRequest, timestampMode, gpsSignalValid)
-        return timestampMode[], (gpsSignalValid[] != 0)
-    end
-
-end
-
-for (H, cf) in (
-
-    # int ncGrabSetTimestampInternal(NcGrab grab, struct tm *dateTime, int nbrUs);
-    (Grab, :ncGrabSetTimestampInternal),
-
-    # int ncCamSetTimestampInternal(NcCam cam, struct tm *dateTime, int nbrUs);
-    (Cam, :ncCamSetTimestampInternal))
-
-    @eval function setTimestampInternal(handle::$H,
-                                        dateTime::Union{Ref{TmStruct},
-                                                        Ptr{TmStruct}},
-                                        nbrUs::Integer)
-        @call($cf, Status, ($H, Ptr{TmStruct}, Cint), handle, dateTime, nbrUs)
-    end
-
-end
-
 function setTimestampInternal(handle::Union{Cam,Grab}, dateTime::TmStruct,
                               nbrUs::Integer)
     setTimestampInternal(handle, Ref(dateTime), nbrUs)
 end
 
-for (H, cf) in (
-
-    # int ncGrabGetCtrlTimestamp(NcGrab grab, NcImage* imageAcqu,
-    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
-    #         int *status);
-    (Grab, :ncGrabGetCtrlTimestamp),
-
-    # int ncCamGetCtrlTimestamp(NcCam cam, NcImage* imageAcqu,
-    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
-    #         int *status);
-    (Cam, :ncCamGetCtrlTimestamp))
-
-    @eval function getCtrlTimestamp(handle::$H, imageAcqu::Ptr{Image},
-                                    ctrTimestamp::Union{Ref{TmStruct},
-                                                        Ptr{TmStruct}})
-        ctrlSecondFraction = Ref{Cdouble}()
-        status = Ref{Cint}
-        @call($cf, Status, ($H, Ptr{Image}, Ptr{TmStruct}, Ptr{Cdouble}, Ptr{Cint}),
-              handle, imageAcqu, ctrTimestamp, ctrlSecondFraction, status)
-        return ctrTimestamp[], ctrlSecondFraction[], status[]
-    end
-
-end
-
 function getCtrlTimestamp(handle::Union{Cam,Grab}, imageAcqu::Ptr{Image})
     ctrTimestamp = Ref{TmStruct}()
     return getCtrlTimestamp(handle, imageAcqu, ctrTimestamp)
-end
-
-for (H, cf) in (
-
-    # int ncGrabGetHostSystemTimestamp(NcGrab grab, NcImage* imageAcqu,
-    #         double *hostSystemTimestamp);
-    (Grab, :ncGrabGetHostSystemTimestamp),
-
-    # int ncCamGetHostSystemTimestamp(NcCam cam, NcImage* imageAcqu,
-    #         double *hostSystemTimestamp);
-    (Cam, :ncCamGetHostSystemTimestamp))
-
-    @eval function getHostSystemTimestamp(handle::$H, imageAcqu::Ptr{Image})
-        hostSystemTimestamp = Ref{Cdouble}()
-        @call($cf, Status, ($H, Ptr{Image}, Ptr{Cdouble}),
-              handle, imageAcqu, hostSystemTimestamp)
-        return hostSystemTimestamp[]
-    end
-
 end
 
 #------------------------------------------------------------------------------
@@ -1129,79 +445,6 @@ end
 #-     @call(:ncCamGetFreqAvail, Status,
 #-           (Cam, Ampli, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
 #-           cam, ampli, ampliNo, vertFreq, horizFreq, readoutModeNo)
-
-
-for (jf, cf, T) in (
-
-    # int ncCamGetExposureTime(NcCam cam, int cameraRequest,
-    #         double* exposureTime);
-    (:getExposureTime, :ncCamGetExposureTime, Cdouble),
-
-    # int ncCamGetWaitingTime(NcCam cam, int cameraRequest,
-    #         double* waitingTime);
-    (:getWaitingTime, :ncCamGetWaitingTime, Cdouble),
-
-    # int ncCamGetShutterMode(NcCam cam, int cameraRequest,
-    #         enum ShutterMode* shutterMode);
-    (:getShutterMode, :ncCamGetShutterMode, ShutterMode),
-
-    # int ncCamGetShutterPolarity(NcCam cam, int cameraRequest,
-    #         enum ExtPolarity* shutterPolarity);
-    (:getShutterPolarity, :ncCamGetShutterPolarity, ExtPolarity),
-
-    # int ncCamGetExternalShutter(NcCam cam, int cameraRequest,
-    #         enum ExtShutter* externalShutterPresence);
-    (:getExternalShutter, :ncCamGetExternalShutter, ExtShutter),
-
-    # int ncCamGetExternalShutterMode(NcCam cam, int cameraRequest,
-    #         enum ShutterMode* externalShutterMode);
-    (:getExternalShutterMode, :ncCamGetExternalShutterMode, ShutterMode),
-
-    # int ncCamGetExternalShutterDelay(NcCam cam, int cameraRequest,
-    #         double* externalShutterDelay);
-    (:getExternalShutterDelay, :ncCamGetExternalShutterDelay, Cdouble),
-
-    # int ncCamGetFirePolarity(NcCam cam, int cameraRequest,
-    #         enum ExtPolarity* firePolarity);
-    (:getFirePolarity, :ncCamGetFirePolarity, ExtPolarity),
-
-    # int ncCamGetOutputMinimumPulseWidth(NcCam cam, int cameraRequest,
-    #         double *outputPulseWidth);
-    (:getOutputMinimumPulseWidth, :ncCamGetOutputMinimumPulseWidth, Cdouble),
-
-    # int ncCamGetArmPolarity(NcCam cam, int cameraRequest,
-    #         enum ExtPolarity* armPolarity);
-    (:getArmPolarity, :ncCamGetArmPolarity, ExtPolarity),
-
-    # int ncCamGetCalibratedEmGain(NcCam cam, int cameraRequest,
-    #         int *calibratedEmGain);
-    (:getCalibratedEmGain, :ncCamGetCalibratedEmGain, Cint),
-
-    # int ncCamGetRawEmGain(NcCam cam, int cameraRequest, int* rawEmGain);
-    (:getRawEmGain, :ncCamGetRawEmGain, Cint),
-
-    # int ncCamGetAnalogGain(NcCam cam, int cameraRequest, int* analogGain);
-    (:getAnalogGain, :ncCamGetAnalogGain, Cint),
-
-    # int ncCamGetAnalogOffset(NcCam cam, int cameraRequest,
-    #         int* analogOffset);
-    (:getAnalogOffset, :ncCamGetAnalogOffset, Cint),
-
-    # int ncCamGetTargetDetectorTemp(NcCam cam, int cameraRequest,
-    #         double* targetDetectorTemp);
-    (:getTargetDetectorTemp, :ncCamGetTargetDetectorTemp, Cdouble),
-
-    # int ncCamGetSerialCarTime(NcCam cam, int cameraRequest,
-    #         double* serialCarTime);
-    (:getSerialCarTime, :ncCamGetSerialCarTime, Cdouble))
-
-    @eval function $jf(cam::Cam, req::Bool)
-        value = Ref{$T}()
-        @call($cf, Status, (Cam, Cint, Ptr{$T}), cam, req, value)
-        return value[]
-    end
-
-end
 
 #- # int ncCamSetTriggerMode(NcCam cam, enum TriggerMode triggerMode, int nbrImages);
 #- ncCamSetTriggerMode(cam::Cam, triggerMode::TriggerMode, nbrImages::Cint) =
@@ -1269,27 +512,6 @@ end
 #-           (Cam, Cint, Cint, Cint, Cint),
 #-           cam, offsetX, offsetY, width, height)
 
-for (jf, cf) in (
-
-    # int ncCamGetMRoiInputRegion(ImageParams params, int index, int * offsetX, int * offsetY, int * width, int * height);
-    (:getMRoiInputRegion, :ncCamGetMRoiInputRegion),
-
-    # int ncCamGetMRoiOutputRegion(ImageParams params, int index, int * offsetX, int * offsetY, int * width, int * height);
-    (:getMRoiOutputRegion, :ncCamGetMRoiOutputRegion))
-
-    @eval function $jf(params::ImageParams{Cam}, index::Integer)
-        offsetX = Ref{Cint}()
-        offsetY = Ref{Cint}()
-        width = Ref{Cint}()
-        height = Ref{Cint}()
-        @call($cf, Status,
-              (ImageParams, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-              params, index, offsetX, offsetY, width, height)
-        return offsetX[], offsetY[], width[], height[]
-    end
-
-end
-
 #- # int ncCamGetMRoiRegionCount(ImageParams params, int * count);
 #- ncCamGetMRoiRegionCount(params::ImageParams, count::Ptr{Cint}) =
 #-     @call(:ncCamGetMRoiRegionCount, Status,
@@ -1329,85 +551,85 @@ end
 #------------------------------------------------------------------------------
 # CALLBACKS
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # Frame grabber callbacks.
 
     # int ncGrabSetEvent(NcGrab grab, NcCallbackFunc funcName, void* ncData);
-    (Grab, :setEvent, :ncGrabSetEvent),
+    (:setEvent, Grab, :ncGrabSetEvent),
 
     # int ncGrabSaveImageSetHeaderCallback(NcGrab grab,
     #         void (*fct)(NcGrab grab, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Grab, :setWriteHeaderCallback, :ncGrabSaveImageSetHeaderCallback),
+    (:setWriteHeaderCallback, Grab, :ncGrabSaveImageSetHeaderCallback),
 
     # int ncGrabSaveImageWriteCallback(NcGrab grab,
     #         void (*fct)(NcGrab grab, int imageNo, void *data), void *data);
-    (Grab, :setWriteImageCallback, :ncGrabSaveImageWriteCallback),
+    (:setWriteImageCallback, Grab, :ncGrabSaveImageWriteCallback),
 
     # int ncGrabSaveImageCloseCallback(NcGrab grab,
     #         void (*fct)(NcGrab grab, int fileNo, void *data), void *data);
-    (Grab, :setCloseImageCallback, :ncGrabSaveImageCloseCallback),
+    (:setCloseImageCallback, Grab, :ncGrabSaveImageCloseCallback),
 
     # int ncGrabSaveParamSetHeaderCallback(NcGrab grab,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Grab, :setSaveParamHeaderCallback, :ncGrabSaveParamSetHeaderCallback),
+    (:setSaveParamHeaderCallback, Grab, :ncGrabSaveParamSetHeaderCallback),
 
     # int ncGrabLoadParamSetHeaderCallback(NcGrab grab,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Grab, :setLoadParamHeaderCallback, :ncGrabLoadParamSetHeaderCallback),
+    (:setLoadParamHeaderCallback, Grab, :ncGrabLoadParamSetHeaderCallback),
 
     # int ncGrabCreateBiasNewImageCallback(NcGrab grab,
     #         void (*fct)(NcGrab grab, int imageNo, void *data), void *data);
-    (Grab, :setCreateBiasCallback, :ncGrabCreateBiasNewImageCallback),
+    (:setCreateBiasCallback, Grab, :ncGrabCreateBiasNewImageCallback),
 
 
     # Camera callbacks.
 
     # int ncCamSetEvent(NcCam cam, NcCallbackFunc funcName, void *ncData);
-    (Cam, :setEvent, :ncCamSetEvent),
+    (:setEvent, Cam, :ncCamSetEvent),
 
     # int ncCamReadyToClose(NcCam cam, void (*fct)(NcCam cam, void *data),
     #         void *data);
-    (Cam, :readyToClose, :ncCamReadyToClose),
+    (:readyToClose, Cam, :ncCamReadyToClose),
 
     # int ncCamSaveImageSetHeaderCallback(NcCam cam,
     #         void (*fct)(NcCam cam, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Cam, :setWriteHeaderCallback, :ncCamSaveImageSetHeaderCallback),
+    (:setWriteHeaderCallback, Cam, :ncCamSaveImageSetHeaderCallback),
 
     # int ncCamSaveImageWriteCallback(NcCam cam,
     #         void (*fct)(NcCam cam, int imageNo, void *data), void *data);
-    (Cam, :setWriteImageCallback, :ncCamSaveImageWriteCallback),
+    (:setWriteImageCallback, Cam, :ncCamSaveImageWriteCallback),
 
     # int ncCamSaveImageCloseCallback(NcCam cam,
     #         void (*fct)(NcCam cam, int fileNo, void *data), void *data);
-    (Cam, :setCloseImageCallback, :ncCamSaveImageCloseCallback),
+    (:setCloseImageCallback, Cam, :ncCamSaveImageCloseCallback),
 
     # int ncCamSaveParamSetHeaderCallback(NcCam cam,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Cam, :setSaveParamHeaderCallback, :ncCamSaveParamSetHeaderCallback),
+    (:setSaveParamHeaderCallback, Cam, :ncCamSaveParamSetHeaderCallback),
 
     # int ncCamLoadParamSetHeaderCallback(NcCam cam,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Cam, :setLoadParamHeaderCallback, :ncCamLoadParamSetHeaderCallback),
+    (:setLoadParamHeaderCallback, Cam, :ncCamLoadParamSetHeaderCallback),
 
     # int ncCamCreateBiasNewImageCallback(NcCam cam,
     #         void (*fct)(NcCam cam, int imageNo, void *data), void *data);
-    (Cam, :setCreateBiasCallback, :ncCamCreateBiasNewImageCallback),
+    (:setCreateBiasCallback, Cam, :ncCamCreateBiasNewImageCallback),
 
     # int ncCamSetOnStatusAlertCallback(NcCam cam,
     #         void (*fct)(NcCam cam, void* data, int errorCode,
     #                     const char* errorString), void* data);
-    (Cam, :setOnStatusAlertCallback, :ncCamSetOnStatusAlertCallback),
+    (:setOnStatusAlertCallback, Cam, :ncCamSetOnStatusAlertCallback),
 
     # int ncCamSetOnStatusUpdateCallback(NcCam cam,
     #         void (*fct)(NcCam cam, void* data), void* data);
-    (Cam, :setOnStatusUpdateCallback, :ncCamSetOnStatusUpdateCallback),
+    (:setOnStatusUpdateCallback, Cam, :ncCamSetOnStatusUpdateCallback),
 
 
     # Processing callbacks.
@@ -1415,15 +637,15 @@ for (H, jf, cf) in (
     # int ncProcSaveSetHeaderCallback(NcProc ctx,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Proc, :setSaveHeaderCallback, :ncProcSaveSetHeaderCallback),
+    (:setSaveHeaderCallback, Proc, :ncProcSaveSetHeaderCallback),
 
     # int ncProcLoadSetHeaderCallback(NcProc ctx,
     #         void (*fct)(NcProc ctx, NcImageSaved *imageFile, void *data),
     #         void *data);
-    (Proc, :setLoadHeaderCallback, :ncProcLoadSetHeaderCallback))
+    (:setLoadHeaderCallback, Proc, :ncProcLoadSetHeaderCallback))
 
-    @eval $jf(handle::$H, fct::Ptr{Void}, data::Ptr{Void}) =
-        @call($cf, Status, ($H, Ptr{Void}, Ptr{Void}), handle, fct, data)
+    @eval $m(handle::$H, fct::Ptr{Void}, data::Ptr{Void}) =
+        @call($f, Status, ($H, Ptr{Void}, Ptr{Void}), handle, fct, data)
 
 end
 
@@ -1578,31 +800,899 @@ function getResultAtLocation(solutionSet::CropModeSolutions,
             startY_min[], startY_max[])
 end
 
-close(solutionSet::CropModeSolutions) =
-    # int ncCropModeSolutionsClose(NcCropModeSolutions solutionSet);
-    @call(:ncCropModeSolutionsClose, Status, (CropModeSolutions,), solutionSet)
 
 #------------------------------------------------------------------------------
+# COMMON METHODS
 
-#- # int ncCamCreateBias(NcCam cam, int nbrImages, enum ShutterMode biasShuttermode);
-#- ncCamCreateBias(cam::Cam, nbrImages::Cint, biasShuttermode::ShutterMode) =
-#-     @call(:ncCamCreateBias, Status,
-#-           (Cam, Cint, ShutterMode),
-#-           cam, nbrImages, biasShuttermode)
+#
+# Methods which just take a handle argument.
+#
+# `m` is the Julia method, `H` is the handle type, `f` is the C function to
+# call.
+#
+for (m, H, f) in (
 
-#- # int ncCamGetProcType(NcCam cam, int * type, int * nbrImagesPc);
-#- ncCamGetProcType(cam::Cam, _type::Ptr{Cint}, nbrImagesPc::Ptr{Cint}) =
-#-     @call(:ncCamGetProcType, Status,
-#-           (Cam, Ptr{Cint}, Ptr{Cint}),
-#-           cam, _type, nbrImagesPc)
+    # int ncGrabAbort(NcGrab grab);
+    (:abort, Grab, :ncGrabAbort),
 
-#- # int ncCamSetProcType(NcCam cam, int type, int nbrImagesPc);
-#- ncCamSetProcType(cam::Cam, _type::Cint, nbrImagesPc::Cint) =
-#-     @call(:ncCamSetProcType, Status,
-#-           (Cam, Cint, Cint),
-#-           cam, _type, nbrImagesPc)
+    # int ncCamAbort(NcCam cam);
+    (:abort, Cam, :ncCamAbort),
 
+    # int ncCamMRoiApply(NcCam cam);
+    (:applyMRoi, Cam, :ncCamMRoiApply),
 
+    # int ncCamBeginAcquisition(NcCam cam);
+    (:beginAcquisition, Cam, :ncCamBeginAcquisition),
+
+    # int ncGrabCancelBiasCreation(NcGrab grab);
+    (:cancelBiasCreation, Grab, :ncGrabCancelBiasCreation),
+
+    # int ncCamCancelBiasCreation(NcCam cam);
+    (:cancelBiasCreation, Cam, :ncCamCancelBiasCreation),
+
+    # int ncGrabCancelEvent(NcGrab grab);
+    (:cancelEvent, Grab, :ncGrabCancelEvent),
+
+    # int ncCamCancelEvent(NcCam cam);
+    (:cancelEvent, Cam, :ncCamCancelEvent),
+
+    # int ncGrabClose(NcGrab grab);
+    (:close, Grab, :ncGrabClose),
+
+    # int ncCamClose(NcCam cam);
+    (:close, Cam, :ncCamClose),
+
+    # int ncGrabCloseImageParams(ImageParams imageParams);
+    (:close, ImageParams{Grab}, :ncGrabCloseImageParams),
+
+    # int ncCamCloseImageParams(ImageParams imageParams);
+    (:close, ImageParams{Cam}, :ncCamCloseImageParams),
+
+    # int ncCropModeSolutionsClose(NcCropModeSolutions solutionSet);
+    (:close, CropModeSolutions, :ncCropModeSolutionsClose),
+
+    # int ncProcClose(NcProc ctx);
+    (:close, Proc, :ncProcClose),
+
+    # int ncStatsClose(NcStatsCtx *statsCtx);
+    (:close, StatsCtx, :ncStatsClose),
+
+    # int ncControllerListFree(NcCtrlList ctrlList);
+    (:close, CtrlList, :ncControllerListFree),
+
+    # int ncProcComputeBias(NcProc ctx);
+    (:computeBias, Proc, :ncProcComputeBias),
+
+    # int ncProcEmptyStack(NcProc ctx);
+    (:emptyStack, Proc, :ncProcEmptyStack),
+
+    # int ncGrabFlushReadQueues(NcGrab grab);
+    (:flushReadQueues, Grab, :ncGrabFlushReadQueues),
+
+    # int ncCamFlushReadQueues(NcCam cam);
+    (:flushReadQueues, Cam, :ncCamFlushReadQueues),
+
+    # int ncCamMRoiRollback(NcCam cam);
+    (:rollbackMRoi, Cam, :ncCamMRoiRollback),
+
+    # int ncGrabStopSaveAcquisition(NcGrab grab);
+    (:stopSaveAcquisition, Grab, :ncGrabStopSaveAcquisition),
+
+    # int ncCamStopSaveAcquisition(NcCam cam);
+    (:stopSaveAcquisition, Cam, :ncCamStopSaveAcquisition))
+
+    @eval $m(handle::$H) = @call($f, Status, ($H, ), handle)
+
+end
+
+#
+# Methods which retrieve 1 parameter.
+#
+# `m` is the Julia method, `H` is the handle type, `f` is the C function to
+# call, `T` is the C type of the retrieved value.
+#
+# If `T` is `Bool`, then a `Cint` is retrieved and a boolean result is returned.
+#
+for (m, H, f, T) in (
+
+    # int ncProcGetBiasClampLevel(NcProc ctx, int* biasLevel);
+    (:getBiasClampLevel, Proc, :ncProcGetBiasClampLevel, Cint),
+
+    # int ncCamGetDetectorTemp(NcCam cam, double* detectorTemp);
+    (:getDetectorTemp, Cam, :ncCamGetDetectorTemp, Cdouble),
+
+    # int ncCamGetDetectorType(NcCam cam, enum DetectorType *type);
+    (:getDetectorType, Cam, :ncCamGetDetectorType, DetectorType),
+
+    # int ncImageGetFileFormat(NcImageSaved* image, enum ImageFormat* format);
+    (:getFileFormat, ImageSaved, :ncImageGetFileFormat, ImageFormat),
+
+    # int ncCamGetFrameLatency(NcCam cam, int *frameLatency);
+    (:getFrameLatency, Cam, :ncCamGetFrameLatency, Cint),
+
+    # int ncControllerListGetFreePortCount(const NcCtrlList ctrlList,
+    #         int * portCount);
+    (:getFreePortCount, CtrlList, :ncControllerListGetFreePortCount, Cint),
+
+    # int ncGrabGetHeartbeat(NcGrab grab, int *timeMs);
+    (:getHeartbeat, Grab, :ncGrabGetHeartbeat, Cint),
+
+    # int ncCamGetHeartbeat(NcCam cam, int *timeMs);
+    (:getHeartbeat, Cam, :ncCamGetHeartbeat, Cint),
+
+    # int ncProcGetImage(NcProc ctx, NcImage** image);
+    (:getImage, Proc, :ncProcGetImage, Ptr{Image}),
+
+    # int ncCamGetMRoiCount(NcCam cam, int * count);
+    (:getMRoiCount, Cam, :ncCamGetMRoiCount, Cint),
+
+    # int ncCamGetMRoiCountMax(NcCam cam, int * count);
+    (:getMRoiCountMax, Cam, :ncCamGetMRoiCountMax, Cint),
+
+    # int ncGrabGetNbrDroppedImages(NcGrab grab, int* nbrDroppedImages);
+    (:getNbrDroppedImages, Grab, :ncGrabGetNbrDroppedImages, Cint),
+
+    # int ncCamGetNbrDroppedImages(NcCam cam, int* nbrDroppedImages);
+    (:getNbrDroppedImages, Cam, :ncCamGetNbrDroppedImages, Cint),
+
+    # int ncCamGetNbrReadoutModes(NcCam cam, int* nbrReadoutMode);
+    (:getNbrReadoutModes, Cam, :ncCamGetNbrReadoutModes, Cint),
+
+    # int ncGrabGetNbrTimeout(NcGrab grab, int* nbrTimeout);
+    (:getNbrTimeout, Grab, :ncGrabGetNbrTimeout, Cint),
+
+    # int ncCamGetNbrTimeout(NcCam cam, int* nbrTimeout);
+    (:getNbrTimeout, Cam, :ncCamGetNbrTimeout, Cint),
+
+    # int ncGrabGetOverrun(NcGrab grab, int* overrunOccurred);
+    (:getOverrun, Grab, :ncGrabGetOverrun, Bool),
+
+    # int ncCamGetOverrun(NcCam cam, int* overrunOccurred);
+    (:getOverrun, Cam, :ncCamGetOverrun, Bool),
+
+    # int ncCamGetOverscanLines(NcCam cam, int *overscanLines);
+    (:getOverscanLines, Cam, :ncCamGetOverscanLines, Cint),
+
+    # int ncProcGetOverscanLines(NcProc ctx, int *overscanLines);
+    (:getOverscanLines, Proc, :ncProcGetOverscanLines, Cint),
+
+    # int ncControllerListGetPluginCount(const NcCtrlList ctrlList,
+    #         int * listSize);
+    (:getPluginCount, CtrlList, :ncControllerListGetPluginCount, Cint),
+
+    # int ncProcGetProcType(NcProc ctx, int *type);
+    (:getProcType, Proc, :ncProcGetProcType, Cint),
+
+    # int ncCamGetReadoutTime(NcCam cam, double *time);
+    (:getReadoutTime, Cam, :ncCamGetReadoutTime, Cdouble),
+
+    # int ncGrabSaveImageGetCompressionType(NcGrab grab,
+    #         enum ImageCompression *compress);
+    (:getSaveImageCompressionType, Grab,
+     :ncGrabSaveImageGetCompressionType, ImageCompression),
+
+    # int ncGrabGetSerialTimeout(NcGrab grab, int *serialTimeout);
+    (:getSerialTimeout, Grab, :ncGrabGetSerialTimeout, Cint),
+
+    # int ncGrabGetSerialUnreadBytes(NcGrab grab, int* numByte);
+    (:getSerialUnreadBytes, Grab, :ncGrabGetSerialUnreadBytes, Cint),
+
+    # int ncControllerListGetSize(const NcCtrlList ctrlList, int * listSize);
+    (:getSize, CtrlList, :ncControllerListGetSize, Cint),
+
+    # int ncCamGetStatusPollRate(NcCam cam, int * periodMs);
+    (:getStatusPollRate, Cam, :ncCamGetStatusPollRate, Cint),
+
+    # int ncGrabGetTimeout(NcGrab grab, int* timeTimeout);
+    (:getTimeout, Grab, :ncGrabGetTimeout, Cint),
+
+    # int ncCamGetTimeout(NcCam cam, int* timeTimeout);
+    (:getTimeout, Cam, :ncCamGetTimeout, Cint),
+
+    # int ncGrabNbrImagesAcquired(NcGrab grab, int *nbrImages);
+    (:nbrImagesAcquired, Grab, :ncGrabNbrImagesAcquired, Cint),
+
+    # int ncGrabRead(NcGrab grab, NcImage** imageAcqu);
+    (:read, Grab, :ncGrabRead, Ptr{Image}),
+
+    # int ncCamRead(NcCam cam, NcImage** imageAcqu);
+    (:read, Cam, :ncCamRead, Ptr{Image}))
+
+    if T == Bool
+        @eval function $m(handle::$H)
+            out::Ref{Cint}()
+            @call($f, Status, ($H, Ptr{$T}), handle, out)
+            return (out[] != zero(Cint))
+        end
+    else
+        @eval function $m(handle::$H)
+            out::Ref{$T}()
+            @call($f, Status, ($H, Ptr{$T}), handle, out)
+            return out[]
+        end
+    end
+end
+
+#
+# Methods which retrieve 2 parameters.
+#
+# `m` is the Julia method, `H` is the handle type, `f` is the C function to
+# call, `T1` and `T2` are the C types of the retrieved values.
+#
+for (m, H, f, T1, T2) in (
+
+    # int ncCamGetActiveRegion(NcCam cam, int *width, int *height);
+    (:getActiveRegion, Cam, :ncCamGetActiveRegion, Cint, Cint),
+
+    # int ncCamGetAnalogGainRange(NcCam cam, int* analogGainMin,
+    #         int* analogGainMax);
+    (:getAnalogGainRange, Cam, :ncCamGetAnalogGainRange, Cint, Cint),
+
+    # int ncCamGetAnalogOffsetRange(NcCam cam, int* analogOffsetMin,
+    #         int* analogOffsetMax);
+    (:getAnalogOffsetRange, Cam, :ncCamGetAnalogOffsetRange, Cint, Cint),
+
+    # int ncCamGetBinningMode(NcCam cam, int *binXValue, int *binYValue);
+    (:getBinningMode, Cam, :ncCamGetBinningMode, Cint, Cint),
+
+    # int ncCamGetCalibratedEmGainRange(NcCam cam, int* calibratedEmGainMin,
+    #         int* calibratedEmGainMax);
+    (:getCalibratedEmGainRange, Cam,
+     :ncCamGetCalibratedEmGainRange, Cint, Cint),
+
+    # int ncCamGetCalibratedEmGainTempRange(NcCam cam,
+    #         double* calibratedEmGainTempMin,
+    #         double* calibratedEmGainTempMax);
+    (:getCalibratedEmGainTempRange, Cam,
+     :ncCamGetCalibratedEmGainTempRange, Cdouble, Cdouble),
+
+    # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList,
+    #         int index, int* detectorSizeX, int* detectorSizeY);
+    (:getDetectorSize, CtrlList, :ncControllerListGetDetectorSize, Cint, Cint),
+
+    # int ncCamGetFullCCDSize(NcCam cam, int *width, int *height);
+    (:getFullCCDSize, Cam, :ncCamGetFullCCDSize, Cint, Cint),
+
+    # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList,
+    #         int index, int* detectorSizeX, int* detectorSizeY);
+    (:getFullSize, CtrlList, :ncControllerListGetFullSizeSize, Cint, Cint),
+
+    # int ncCamGetMaxSize(NcCam cam, int *width, int *height);
+    (:getMaxSize, Cam, :ncCamGetMaxSize, Cint, Cint),
+
+    # int ncGrabGetProcType(NcGrab grab, int * type, int * nbrImagesPc);
+    (:getProcType, Grab, :ncGrabGetProcType, Cint, Cint),
+
+    # int ncCamGetProcType(NcCam cam, int * type, int * nbrImagesPc);
+    (:getProcType, Cam, :ncCamGetProcType, Cint, Cint),
+
+    # int ncCamGetRawEmGainRange(NcCam cam, int* rawEmGainMin,
+    #         int* rawEmGainMax);
+    (:getRawEmGainRange, Cam, :ncCamGetRawEmGainRange, Cint, Cint),
+
+    # int ncGrabGetSize(NcGrab grab, int* width, int* height);
+    (:getSize, Grab, :ncGrabGetSize, Cint, Cint),
+
+    # int ncCamGetSize(NcCam cam, int *width, int *height);
+    (:getSize, Cam, :ncCamGetSize, Cint, Cint),
+
+    # int ncCamGetTargetDetectorTempRange(NcCam cam,
+    #         double *targetDetectorTempMin, double *targetDetectorTempMax);
+    (:getTargetDetectorTempRange, Cam,
+     :ncCamGetTargetDetectorTempRange, Cdouble, Cdouble),
+
+    # int ncGrabReadChronological(NcGrab grab, NcImage** imageAcqu,
+    #         int* nbrImagesSkipped);
+    (:readChronological, Grab, :ncGrabReadChronological, Ptr{Image}, Cint),
+
+    # int ncCamReadChronological(NcCam cam, NcImage** imageAcqu,
+    #         int* nbrImagesSkipped);
+    (:readChronological, Cam, :ncCamReadChronological, Ptr{Image}, Cint),
+
+    # int ncGrabReadChronologicalNonBlocking(NcGrab grab, NcImage** imageAcqu,
+    #         int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, Grab,
+     :ncGrabReadChronologicalNonBlocking, Ptr{Image}, Cint),
+
+    # int ncCamReadChronologicalNonBlocking(NcCam cam, NcImage **imageAcqu,
+    #         int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, Cam,
+     :ncCamReadChronologicalNonBlocking, Ptr{Image}, Cint))
+
+    @eval function $m(handle::$H)
+        out1::Ref{$T1}()
+        out2::Ref{$T2}()
+        @call($f, Status, ($H, Ptr{$T1}, Ptr{$T2}), handle, out1, out2)
+        return out1[], out2[]
+    end
+
+end
+
+#
+# Methods for a handle and 1 other input argument.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj` is the Julia type of
+# the input argument, `f` is the C function to call, `Tc` is the C type of the
+# input argument.
+#
+for (m, H, Tj, f, Tc) in (
+
+    # int ncProcAddBiasImage(NcProc ctx, NcImage *bias);
+    (:addBiasImage, Proc, Ptr{Image}, :ncProcAddBiasImage, Ptr{Image}),
+
+    # int ncProcAddDataImage(NcProc ctx, NcImage *image);
+    (:addDataImage, Proc, Ptr{Image}, :ncProcAddDataImage, Ptr{Image}),
+
+    # int ncGrabCreateBias(NcGrab grab, int nbrImages);
+    (:createBias, Grab, Integer, :ncGrabCreateBias, Cint),
+
+    # int ncCamDeleteMRoi(NcCam cam, int index);
+    (:deleteMRoi, Cam, Integer, :ncCamDeleteMRoi, Cint),
+
+    # int ncGrabLoadParam(NcGrab grab, const char *saveName);
+    (:loadParam, Grab, Name, :ncGrabLoadParam, Cstring),
+
+    # int ncCamLoadParam(NcCam cam, const char *saveName);
+    (:loadParam, Cam, Name, :ncCamLoadParam, Cstring),
+
+    # int ncCamPrepareAcquisition(NcCam cam, int nbrImages);
+    (:prepareAcquisition, Cam, Integer, :ncCamPrepareAcquisition, Cint),
+
+    # int ncProcProcessDataImageInPlace(NcProc ctx, NcImage *image);
+    (:processDataImageInPlace, Proc, Ptr{Image},
+     :ncProcProcessDataImageInPlace, Ptr{Image}),
+
+    # int ncCamReadUInt32(NcCam cam, uint32_t *image);
+    (:read, Cam, Union{Ptr{UInt32},DenseMatrix{UInt32}},
+     :ncCamReadUInt32, Ptr{UInt32}),
+
+    # int ncCamReadFloat(NcCam cam, float *image);
+    (:read, Cam, Union{Ptr{Cfloat},DenseMatrix{Cfloat}},
+     :ncCamReadUInt32, Ptr{Cfloat}),
+
+    # int ncProcReleaseImage(NcProc ctx, NcImage *image);
+    (:releaseImage, Proc, Ptr{Image}, :ncProcReleaseImage, Ptr{Image}),
+
+    # int ncGrabResetTimer(NcGrab grab, double timeOffset);
+    (:resetTimer, Grab, Real, :ncGrabResetTimer, Cdouble),
+
+    # int ncCamResetTimer(NcCam cam, double timeOffset);
+    (:resetTimer, Cam, Real, :ncCamResetTimer, Cdouble),
+
+    # int ncCamSetAnalogGain(NcCam cam, int analogGain);
+    (:setAnalogGain, Cam, Integer, :ncCamSetAnalogGain, Cint),
+
+    # int ncCamSetAnalogOffset(NcCam cam, int analogOffset);
+    (:setAnalogOffset, Cam, Integer, :ncCamSetAnalogOffset, Cint),
+
+    # int ncCamSetArmPolarity(NcCam cam, enum ExtPolarity armPolarity);
+    (:setArmPolarity, Cam, ExtPolarity, :ncCamSetArmPolarity, ExtPolarity),
+
+    # int ncGrabSetBaudrate(NcGrab grab, int baudrateSpeed);
+    (:setBaudrate, Grab, Integer, :ncGrabSetBaudrate, Cint),
+
+    # int ncProcSetBiasClampLevel(NcProc ctx, int biasClampLevel);
+    (:setBiasClampLevel, Proc, Integer, :ncProcSetBiasClampLevel, Cint),
+
+    # int ncCamSetCalibratedEmGain(NcCam cam, int calibratedEmGain);
+    (:setCalibratedEmGain, Cam, Integer, :ncCamSetCalibratedEmGain, Cint),
+
+    # int ncCamSetExposureTime(NcCam cam, double exposureTime);
+    (:setExposureTime, Cam, Real, :ncCamSetExposureTime, Cdouble),
+
+    # int ncCamSetExternalShutter(NcCam cam,
+    #         enum ExtShutter externalShutterPresence);
+    (:setExternalShutter, Cam, ExtShutter,
+     :ncCamSetExternalShutter, ExtShutter),
+
+    # int ncCamSetExternalShutterDelay(NcCam cam,
+    #         double externalShutterDelay);
+    (:setExternalShutterDelay, Cam, Real,
+     :ncCamSetExternalShutterDelay, Cdouble),
+
+    # int ncCamSetExternalShutterMode(NcCam cam,
+    #         enum ShutterMode externalShutterMode);
+    (:setExternalShutterMode, Cam, ShutterMode,
+     :ncCamSetExternalShutterMode, ShutterMode),
+
+    # int ncCamSetFirePolarity(NcCam cam, enum ExtPolarity firePolarity);
+    (:setFirePolarity, Cam, ExtPolarity, :ncCamSetFirePolarity, ExtPolarity),
+
+    # int ncGrabSetHeartbeat(NcGrab grab, int timeMs);
+    (:setHeartbeat, Grab, Integer, :ncGrabSetHeartbeat, Cint),
+
+    # int ncCamSetHeartbeat(NcCam cam, int timeMs);
+    (:setHeartbeat, Cam, Integer, :ncCamSetHeartbeat, Cint),
+
+    # int ncCamSetOutputMinimumPulseWidth(NcCam cam, double outputPulseWidth);
+    (:setOutputMinimumPulseWidth, Cam, Real,
+     :ncCamSetOutputMinimumPulseWidth, Cdouble),
+
+    # int ncProcSetOverscanLines(NcProc ctx, int overscanLines);
+    (:setOverscanLines, Proc, Integer, :ncProcSetOverscanLines, Cint),
+
+    # int ncCamSetRawEmGain(NcCam cam, int rawEmGain);
+    (:setRawEmGain, Cam, Integer, :ncCamSetRawEmGain, Cint),
+
+    # int ncCamSetReadoutMode(NcCam cam, int value);
+    (:setReadoutMode, Cam, Integer, :ncCamSetReadoutMode, Cint),
+
+    # int ncGrabSaveImageSetCompressionType(NcGrab grab,
+    #         enum ImageCompression compress);
+    (:setSaveImageCompressionType, Grab, ImageCompression,
+     :ncGrabSaveImageSetCompressionType, ImageCompression),
+
+    # int ncGrabSetSerialTimeout(NcGrab grab, int serialTimeout);
+    (:setSerialTimeout, Grab, Integer, :ncGrabSetSerialTimeout, Cint),
+
+    # int ncCamSetSerialCarTime(NcCam cam, double serialCarTime);
+    (:setSerialCarTime, Cam, Real, :ncCamSetSerialCarTime, Cdouble),
+
+    # int ncCamSetShutterMode(NcCam cam, enum ShutterMode shutterMode);
+    (:setShutterMode, Cam, ShutterMode, :ncCamSetShutterMode, ShutterMode),
+
+    # int ncCamSetShutterPolarity(NcCam cam, enum ExtPolarity shutterPolarity);
+    (:setShutterPolarity,Cam,  ExtPolarity,
+     :ncCamSetShutterPolarity, ExtPolarity),
+
+    # int ncCamSetStatusPollRate(NcCam cam, int periodMs);
+    (:setStatusPollRate, Cam, Integer, :ncCamSetStatusPollRate, Cint),
+
+    # int ncCamSetTargetDetectorTemp(NcCam cam, double targetDetectorTemp);
+    (:setTargetDetectorTemp, Cam, Real, :ncCamSetTargetDetectorTemp, Cdouble),
+
+    # int ncGrabSetTimeout(NcGrab grab, int timeMs);
+    (:setTimeout, Grab, Integer, :ncGrabSetTimeout, Cint),
+
+    # int ncCamSetTimeout(NcCam cam, int timeMs);
+    (:setTimeout, Cam, Integer, :ncCamSetTimeout, Cint),
+
+    # int ncGrabSetTimestampMode(NcGrab grab,
+    #         enum TimestampMode timestampMode);
+    (:setTimestampMode, Grab, TimestampMode,
+     :ncGrabSetTimestampMode, TimestampMode),
+
+    # int ncCamSetTimestampMode(NcCam cam, enum TimestampMode timestampMode);
+    (:setTimestampMode, Cam, TimestampMode,
+     :ncCamSetTimestampMode, TimestampMode),
+
+    # int ncProcSetProcType(NcProc ctx, int type);
+    (:setProcType, Proc, Integer, :ncProcSetProcType, Cint),
+
+    # int ncCamSetWaitingTime(NcCam cam, double waitingTime);
+    (:setWaitingTime, Cam, Real, :ncCamSetWaitingTime, Cdouble),
+
+    # int ncGrabStart(NcGrab grab, int nbrImages);
+    (:start, Grab, Integer, :ncGrabStart, Cint),
+
+     # int ncCamStart(NcCam cam, int nbrImages);
+    (:start, Cam, Integer, :ncCamStart, Cint))
+
+    @eval $m(handle::$H, inp::$Tj) =
+        @call($f, Status, ($H, $Tc), handle, inp)
+
+end
+
+#
+# Methods for a handle and 2 other input arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` and `Tj2` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1` and
+# `Tc2` are the C types of the input arguments.
+#
+for (m, H, Tj1, Tj2, f, Tc1, Tc2) in (
+
+    # int ncCamCreateBias(NcCam cam, int nbrImages,
+    #         enum ShutterMode biasShuttermode);
+    (:createBias, Cam, Integer, ShutterMode,
+     :ncCamCreateBias, Cint, ShutterMode),
+
+    # int ncGrabGetImageParams(NcGrab grab, void* image,
+    #         ImageParams imageParams);
+    (:getImageParams, Grab, Ptr{Void}, ImageParams{Grab},
+     :ncGrabGetImageParams, Ptr{Void}, ImageParams{Grab}),
+
+    # int ncCamGetImageParams(NcCam cam, void* image,
+    #         ImageParams imageParams);
+    (:getImageParams, Cam, Ptr{Void}, ImageParams{Cam},
+     :ncCamGetImageParams, Ptr{Void}, ImageParams{Cam}),
+
+    # int ncProcResize(NcProc ctx, int width, int height);
+    (:resize, Proc, Integer, Integer,
+     :ncProcResize, Cint, Cint),
+
+    # int ncGrabSaveParam(NcGrab grab, const char *saveName,
+    #         int overwriteFlag);
+    (:saveParam, Grab, Name, Bool, :ncGrabSaveParam, Cstring, Cint),
+
+    # int ncGrabSetSize(NcGrab grab, int width, int height);
+    (:setSize, Grab, Integer, Integer,
+     :ncGrabSetSize, Cint, Cint),
+
+    # int ncGrabSetProcType(NcGrab grab, int type, int nbrImagesPc);
+    (:setProcType, Grab, Integer, Integer,
+     :ncGrabSetProcType, Cint, Cint),
+
+    # int ncCamSetProcType(NcCam cam, int type, int nbrImagesPc);
+    (:setProcType, Cam, Integer, Integer,
+     :ncCamSetProcType, Cint, Cint),
+
+    # int ncGrabSetTimestampInternal(NcGrab grab, struct tm *dateTime,
+    #         int nbrUs);
+    (:setTimestampInternal, Grab, Union{Ref{TmStruct},Ptr{TmStruct}}, Integer,
+     :ncGrabSetTimestampInternal, Ptr{TmStruct}, Cint),
+
+    # int ncCamSetTimestampInternal(NcCam cam, struct tm *dateTime,
+    #         int nbrUs);
+    (:setTimestampInternal, Cam, Union{Ref{TmStruct},Ptr{TmStruct}}, Integer,
+     :ncCamSetTimestampInternal, Ptr{TmStruct}, Cint))
+
+    @eval $m(handle::$H, inp1::$Tj1, inp2::$Tj2) =
+        @call($f, Status, ($H, $Tc1, $Tc2), handle, inp1, inp2)
+
+end
+
+#
+# Methods for a handle and 4 other input arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1`, ..., `Tj4` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1`,
+# ..., `Tc4` are the C types of the input arguments.
+#
+for (m, H, Tj1, Tj2, Tj3, Tj4, f, Tc1, Tc2, Tc3, Tc4) in (
+
+    # int ncWriteFileHeader(NcImageSaved *currentFile,
+    #         enum HeaderDataType dataType, const char *name,
+    #         const void *value, const char *comment);
+    (:writeFileHeader, ImageSaved, HeaderDataType, Name, Ptr{Void}, Name,
+     :ncWriteFileHeader, HeaderDataType, Cstring, Ptr{Void}, Cstring),
+
+    # int ncGrabSaveImage(NcGrab grab, const NcImage* imageNc,
+    #         const char* saveName, enum ImageFormat saveFormat,
+    #         int overwriteFlag);
+    (:saveImage, Grab, Ptr{Image}, Name, ImageFormat, Bool,
+     :ncGrabSaveImage, Ptr{Image}, Cstring, ImageFormat, Cint))
+
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
+                      inp3::$Tj3, inp4::$Tj4)
+        @call($f, Status, ($H, $Tc1, $Tc2, $Tc3, $Tc4),
+              handle, inp1, inp2, inp3, inp4)
+    end
+
+end
+
+#
+# Methods for a handle and 5 other input arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1`, ..., `Tj5` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1`,
+# ..., `Tc5` are the C types of the input arguments.
+#
+for (m, H, Tj1, Tj2, Tj3, Tj4, Tj5, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
+
+    # int ncGrabSaveImageEx(NcGrab grab, const void* imageNc,
+    #         const char* saveName, enum ImageFormat saveFormat,
+    #         enum ImageDataType dataFormat, int overwriteFlag);
+    (:saveImage, Grab, Ptr{Void}, Name, ImageFormat, ImageDataType, Bool,
+     :ncGrabSaveImageEx, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cint),
+
+    # int ncCamSaveImage(NcCam cam, const NcImage* imageNc,
+    #         const char* saveName, enum ImageFormat saveFormat,
+    #         const char* addComments, int overwriteFlag);
+    (:saveImage, Cam, Ptr{Image}, Name, ImageFormat, Name, Bool,
+     :ncCamSaveImage, Ptr{Image}, Cstring, ImageFormat, Cstring, Cint),
+
+    # int ncCamSaveUInt32Image(NcCam cam, const uint32_t *imageNc,
+    #         const char *saveName, enum ImageFormat saveFormat,
+    #         const char *addComments, int overwriteFlag);
+    (:saveImage, Cam, ImageBuffer{UInt32}, Name, ImageFormat, Name, Bool,
+     :ncCamSaveUInt32Image, Ptr{UInt32}, Cstring, ImageFormat, Cstring, Cint),
+
+    # int ncCamSaveFloatImage(NcCam cam, const float *imageNc,
+    #         const char *saveName, enum ImageFormat saveFormat,
+    #         const char *addComments, int overwriteFlag);
+    (:saveImage, Cam, ImageBuffer{Cfloat}, Name, ImageFormat, Name, Bool,
+     :ncCamSaveFloatImage, Ptr{Cfloat}, Cstring, ImageFormat, Cstring, Cint),
+
+    # int ncGrabStartSaveAcquisition(NcGrab grab, const char *saveName,
+    #         enum ImageFormat saveFormat,
+    #         int imagesPerCubes, int nbrOfCubes,
+    #         int overwriteFlag);
+    (:startSaveAcquisition, Grab, Name, ImageFormat, Integer, Integer, Bool,
+     :ncGrabStartSaveAcquisition, Cstring, ImageFormat, Cint, Cint, Cint))
+
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
+                      inp3::$Tj3, inp4::$Tj4, inp5::$Tj5)
+        @call($f, Status, ($H, $Tc1, $Tc2, $Tc3, $Tc4, $Tc5),
+              handle, inp1, inp2, inp3, inp4, inp5)
+    end
+
+end
+
+#
+# Methods for a handle and 6 other input arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1`, ..., `Tj6` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1`,
+# ..., `Tc6` are the C types of the input arguments.
+#
+for (m, H, Tj1, Tj2, Tj3, Tj4, Tj5, Tj6, f, Tc1, Tc2, Tc3, Tc4, Tc5, Tc6) in (
+
+    # int ncCamSaveImageEx(NcCam cam, const void * imageNc,
+    #         const char* saveName, enum ImageFormat saveFormat,
+    #         enum ImageDataType dataFormat,
+    #         const char* addComments, int overwriteFlag);
+    (:saveImage, Cam, Ptr{Void}, Name, ImageFormat, ImageDataType, Name, Bool,
+     :ncCamSaveImageEx, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cstring, Cint),
+
+    # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName,
+    #         enum ImageFormat saveFormat, int imagesPerCubes,
+    #         const char *addComments, int nbrOfCubes, int overwriteFlag);
+    (:startSaveAcquisition, Cam, Name, ImageFormat, Integer, Name, Integer, Bool,
+     :ncCamStartSaveAcquisition, Cstring, ImageFormat, Cint, Cstring, Cint, Cint))
+
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
+                      inp3::$Tj3, inp4::$Tj4, inp5::$Tj5, inp6::$Tj6)
+        @call($f, Status, ($H, $Tc1, $Tc2, $Tc3, $Tc4, $Tc5, $Tc6),
+              handle, inp1, inp2, inp3, inp4, inp5, inp6)
+    end
+
+end
+
+#
+# Methods for a handle, 1 input argument and 1 output argument.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` is the Julia types of
+# the input argument, `f` is the C function to call, `Tc1` is the C type of the
+# input argument and `Tc2` is the C type of the output argument.
+#
+for (m, H, Tj1, f, Tc1, Tc2) in (
+
+    # int ncCamGetAnalogGain(NcCam cam, int cameraRequest, int* analogGain);
+    (:getAnalogGain, Cam, Bool,
+     :ncCamGetAnalogGain, Cint, Cint),
+
+    # int ncCamGetAnalogOffset(NcCam cam, int cameraRequest,
+    #         int* analogOffset);
+    (:getAnalogOffset, Cam, Bool,
+     :ncCamGetAnalogOffset, Cint, Cint),
+
+    # int ncCamGetArmPolarity(NcCam cam, int cameraRequest,
+    #         enum ExtPolarity* armPolarity);
+    (:getArmPolarity, Cam, Bool,
+     :ncCamGetArmPolarity, Cint, ExtPolarity),
+
+    # int ncCamGetCalibratedEmGain(NcCam cam, int cameraRequest,
+    #         int *calibratedEmGain);
+    (:getCalibratedEmGain, Cam, Bool,
+     :ncCamGetCalibratedEmGain, Cint, Cint),
+
+    # int ncCamGetExposureTime(NcCam cam, int cameraRequest,
+    #         double* exposureTime);
+    (:getExposureTime, Cam, Bool,
+     :ncCamGetExposureTime, Cint, Cdouble),
+
+    # int ncCamGetExternalShutter(NcCam cam, int cameraRequest,
+    #         enum ExtShutter* externalShutterPresence);
+    (:getExternalShutter, Cam, Bool,
+     :ncCamGetExternalShutter, Cint, ExtShutter),
+
+    # int ncCamGetExternalShutterDelay(NcCam cam, int cameraRequest,
+    #         double* externalShutterDelay);
+    (:getExternalShutterDelay, Cam, Bool,
+     :ncCamGetExternalShutterDelay, Cint, Cdouble),
+
+    # int ncCamGetExternalShutterMode(NcCam cam, int cameraRequest,
+    #         enum ShutterMode* externalShutterMode);
+    (:getExternalShutterMode, Cam, Bool,
+     :ncCamGetExternalShutterMode, Cint, ShutterMode),
+
+    # int ncCamGetFirePolarity(NcCam cam, int cameraRequest,
+    #         enum ExtPolarity* firePolarity);
+    (:getFirePolarity, Cam, Bool,
+     :ncCamGetFirePolarity, Cint, ExtPolarity),
+
+    # int ncControllerListGetFreePortChannel(const NcCtrlList ctrlList,
+    #         int index, int * channel);
+    (:getFreePortChannel, CtrlList, Integer,
+     :ncControllerListGetFreePortChannel, Cint, Cint),
+
+    # int ncControllerListGetFreePortReason(const NcCtrlList ctrlList,
+    #         int index, enum NcPortUnusedReason* reason);
+    (:getFreePortReason, CtrlList, Integer,
+     :ncControllerListGetFreePortReason, Cint, PortUnusedReason),
+
+    # int ncControllerListGetFreePortUnit(const NcCtrlList ctrlList,
+    #         int index, int * unit);
+    (:getFreePortUnit, CtrlList, Integer,
+     :ncControllerListGetFreePortUnit, Cint, Cint),
+
+    # int ncGrabGetHostSystemTimestamp(NcGrab grab, NcImage* imageAcqu,
+    #         double *hostSystemTimestamp);
+    (:getHostSystemTimestamp, Grab, Ptr{Image},
+     :ncGrabGetHostSystemTimestamp, Ptr{Image}, Cdouble),
+
+    # int ncCamGetHostSystemTimestamp(NcCam cam, NcImage* imageAcqu,
+    #         double *hostSystemTimestamp);
+    (:getHostSystemTimestamp, Cam, Ptr{Image},
+     :ncCamGetHostSystemTimestamp, Ptr{Image}, Cdouble),
+
+    # int ncCamGetOutputMinimumPulseWidth(NcCam cam, int cameraRequest,
+    #         double *outputPulseWidth);
+    (:getOutputMinimumPulseWidth, Cam, Bool,
+     :ncCamGetOutputMinimumPulseWidth, Cint, Cdouble),
+
+    # int ncControllerListGetPortChannel(const NcCtrlList ctrlList,
+    #         int index, int * channel);
+    (:getPortChannel, CtrlList, :Integer,
+     :ncControllerListGetPortChannel, Cint, Cint),
+
+    # int ncControllerListGetPortUnit(const NcCtrlList ctrlList,
+    #         int index, int * unit);
+    (:getPortUnit, CtrlList, Integer,
+     :ncControllerListGetPortUnit, Cint, Cint),
+
+    # int ncCamGetRawEmGain(NcCam cam, int cameraRequest, int* rawEmGain);
+    (:getRawEmGain, Cam, Bool,
+     :ncCamGetRawEmGain, Cint, Cint),
+
+    # int ncCamGetSerialCarTime(NcCam cam, int cameraRequest,
+    #         double* serialCarTime);
+    (:getSerialCarTime, Cam, Bool,
+     :ncCamGetSerialCarTime, Cint, Cdouble),
+
+    # int ncCamGetShutterMode(NcCam cam, int cameraRequest,
+    #         enum ShutterMode* shutterMode);
+    (:getShutterMode, Cam, Bool,
+     :ncCamGetShutterMode, Cint, ShutterMode),
+
+    # int ncCamGetShutterPolarity(NcCam cam, int cameraRequest,
+    #         enum ExtPolarity* shutterPolarity);
+    (:getShutterPolarity, Cam, Bool,
+     :ncCamGetShutterPolarity, Cint, ExtPolarity),
+
+    # int ncCamGetTargetDetectorTemp(NcCam cam, int cameraRequest,
+    #         double* targetDetectorTemp);
+    (:getTargetDetectorTemp, Cam, Bool,
+     :ncCamGetTargetDetectorTemp, Cint, Cdouble),
+
+    # int ncCamGetWaitingTime(NcCam cam, int cameraRequest,
+    #         double* waitingTime);
+    (:getWaitingTime, Cam, Bool,
+     :ncCamGetWaitingTime, Cint, Cdouble),
+
+    # int ncCamReadUInt32Chronological(NcCam cam,
+    #         uint32_t* imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, Cam, ImageBuffer{UInt32},
+     :ncCamReadUInt32Chronological, Ptr{UInt32}, Cint),
+
+    # int ncCamReadFloatChronological(NcCam cam,
+    #         float* imageAcqu, int* nbrImagesSkipped);
+    (:readChronological, Cam, ImageBuffer{Cfloat},
+     :ncCamReadFloatChronological, Ptr{Cfloat}, Cint),
+
+    # int ncCamReadUInt32ChronologicalNonBlocking(NcCam cam,
+    #         uint32_t* imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, Cam, ImageBuffer{UInt32},
+     :ncCamReadUInt32ChronologicalNonBlocking, Ptr{UInt32}, Cint),
+
+    # int ncCamReadFloatChronologicalNonBlocking(NcCam cam,
+    #         float* imageAcqu, int* nbrImagesSkipped);
+    (:readChronologicalNonBlocking, Cam, ImageBuffer{Cfloat},
+     :ncCamReadFloatChronologicalNonBlocking, Ptr{Cfloat}, Cint))
+
+    @eval function $m(handle::$H, inp::$Tj1)
+        out = Ref{$Tc2}()
+        @call($f, Status, ($H, $Tc1, Ptr{$Tc2}), handle, inp, out)
+        return out[]
+    end
+
+end
+
+#
+# Methods for a handle, 1 input argument and 2 output arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` is the Julia types of
+# the input argument, `f` is the C function to call, `Tc1` is the C type of the
+# input argument and `Tc2` and `Tc3` are the C type of the output arguments.
+#
+for (m, H, Tj1, f, Tc1, Tc2, Tc3) in (
+
+    # int ncGrabGetTimestampMode(NcGrab grab, int ctrlRequest,
+    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
+    (:getTimestampMode, Grab, Bool,
+     :ncGrabGetTimestampMode, Cint, TimestampMode, Bool),
+
+    # int ncCamGetTimestampMode(NcCam cam, int cameraRequest,
+    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
+    (:getTimestampMode, Cam, Bool,
+     :ncCamGetTimestampMode, Cint, TimestampMode, Bool))
+
+    if Tc3 == Bool
+        @eval function $m(handle::$H, inp::$Tj1)
+            out1 = Ref{$Tc2}()
+            out2 = Ref{Cint}()
+            @call($f, Status,
+                  ($H, $Tc1, Ptr{$Tc2}, Ptr{Cint}),
+                  handle, inp, out1, out2)
+            return (out1[], (out2[] != zero(Cint)))
+        end
+    else
+        @eval function $m(handle::$H, inp::$Tj1)
+            out1 = Ref{$Tc2}()
+            out2 = Ref{$Tc3}()
+            @call($f, Status,
+                  ($H, $Tc1, Ptr{$Tc2}, Ptr{$Tc3}),
+                  handle, inp, out1, out2)
+            return (out1[], out2[])
+        end
+    end
+end
+
+#
+# Methods for a handle, 1 input argument and 3 output arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` is the Julia types of
+# the input argument, `f` is the C function to call, `Tc1` is the C type of the
+# input argument and `Tc2`, ... `Tc4` are the C type of the output arguments.
+#
+for (m, H, Tj1, f, Tc1, Tc2, Tc3, Tc4) in (
+
+    # int ncGrabGetCtrlTimestamp(NcGrab grab, NcImage* imageAcqu,
+    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
+    #         int *status);
+    (:getCtrlTimestamp, Grab, Ptr{Image},
+     :ncGrabGetCtrlTimestamp, Ptr{Image}, TmStruct, Cdouble, Cint),
+
+    # int ncCamGetCtrlTimestamp(NcCam cam, NcImage* imageAcqu,
+    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
+    #         int *status);
+    (:getCtrlTimestamp, Cam, Ptr{Image},
+     :ncCamGetCtrlTimestamp, Ptr{Image}, TmStruct, Cdouble, Cint))
+
+    @eval function $m(handle::$H, inp::$Tj1)
+        out1 = Ref{$Tc2}()
+        out2 = Ref{$Tc3}()
+        out3 = Ref{$Tc4}()
+        @call($f, Status,
+              ($H, $Tc1, Ptr{$Tc2}, Ptr{$Tc3}, Ptr{$Tc4}),
+              handle, inp, out1, out2, out3)
+        return (out1[], out2[], out3[])
+    end
+
+end
+
+#
+# Methods for a handle, 1 input argument and 4 output arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` is the Julia types of
+# the input argument, `f` is the C function to call, `Tc1` is the C type of the
+# input argument and `Tc2`, ... `Tc5` are the C type of the output arguments.
+#
+for (m, H, Tj1, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
+
+    # int ncCamGetMRoiInputRegion(ImageParams params, int index,
+    #         int* offsetX, int* offsetY, int* width, int* height);
+    (:getMRoiInputRegion, ImageParams{Cam}, Integer,
+     :ncCamGetMRoiInputRegion, Cint, Cint, Cint, Cint, Cint),
+
+    # int ncCamGetMRoiOutputRegion(ImageParams params, int index,
+    #         int * offsetX, int* offsetY, int* width, int* height);
+    (:getMRoiOutputRegion, ImageParams{Cam}, Integer,
+     :ncCamGetMRoiOutputRegion, Cint, Cint, Cint, Cint, Cint))
+
+    @eval function $m(handle::$H, inp::$Tj1)
+        out1 = Ref{$Tc2}()
+        out2 = Ref{$Tc3}()
+        out3 = Ref{$Tc4}()
+        out4 = Ref{$Tc5}()
+        @call($f, Status,
+              ($H, $Tc1, Ptr{$Tc2}, Ptr{$Tc3}, Ptr{$Tc4}, Ptr{$Tc5}),
+              handle, inp, out1, out2, out3, out4)
+        return (out1[], out2[], out3[], out4[])
+    end
+
+end
 
 #------------------------------------------------------------------------------
 # PROCESSING FUNCTIONS
@@ -1614,78 +1704,12 @@ function open(::Type{Proc}, width::Integer, height::Integer)
     return procCtx[]
 end
 
-for (jf, cf) in (
-
-    # int ncProcClose(NcProc ctx);
-    (:close, :ncProcClose),
-
-    # int ncProcComputeBias(NcProc ctx);
-    (:computeBias, :ncProcComputeBias),
-
-    # int ncProcEmptyStack(NcProc ctx);
-    (:emptyStack, :ncProcEmptyStack))
-
-    @eval $jf(ctx::Proc) = @call($cf, Status, (Proc,), ctx)
-
-end
-
-resize(ctx::Proc, width::Integer, height::Integer) =
-# int ncProcResize(NcProc ctx, int width, int height);
-    @call(:ncProcResize, Status, (Proc, Cint, Cint), ctx, width, height)
-
-for (jf, Tj, cf, Tc) in (
-    # int ncProcAddBiasImage(NcProc ctx, NcImage *bias);
-    (:addBiasImage, Ptr{Image}, :ncProcAddBiasImage, Ptr{Image}),
-
-    # int ncProcSetProcType(NcProc ctx, int type);
-    (:setType, Integer, :ncProcSetProcType, Cint),
-
-    # int ncProcProcessDataImageInPlace(NcProc ctx, NcImage *image);
-    (:processDataImageInPlace, Ptr{Image}, :ncProcProcessDataImageInPlace, Ptr{Image}),
-
-    # int ncProcAddDataImage(NcProc ctx, NcImage *image);
-    (:addDataImage, Ptr{Image}, :ncProcAddDataImage, Ptr{Image}),
-
-    # int ncProcReleaseImage(NcProc ctx, NcImage *image);
-    (:releaseImage, Ptr{Image}, :ncProcReleaseImage, Ptr{Image}),
-
-    # int ncProcSetBiasClampLevel(NcProc ctx, int biasClampLevel);
-    (:setBiasClampLevel, Integer, :ncProcSetBiasClampLevel, Cint),
-
-    # int ncProcSetOverscanLines(NcProc ctx, int overscanLines);
-    (:setOverscanLines, Integer, :ncProcSetOverscanLines, Cint))
-
-    @eval $jf(ctx::Proc, value::$Tj) =
-        @call($cf, Status, (Proc, $Tc), ctx, value)
-
-end
-
-for (jf, cf, T) in (
-
-    # int ncProcGetProcType(NcProc ctx, int *type);
-    (:getType, :ncProcGetProcType, Cint),
-
-    # int ncProcGetImage(NcProc ctx, NcImage** image);
-    (:getImage, :ncProcGetImage, Ptr{Image}),
-
-    # int ncProcGetBiasClampLevel(NcProc ctx, int* biasLevel);
-    (:getBiasClampLevel, :ncProcGetBiasClampLevel, Cint),
-
-    # int ncProcGetOverscanLines(NcProc ctx, int *overscanLines);
-    (:getOverscanLines, :ncProcGetOverscanLines, Cint))
-
-    @eval function $jf(ctx::Proc)
-        value = Ref{$T}()
-        @call($jf, Status, (Proc, Ptr{$T}), ctx, value)
-        return value[]
-    end
-
-end
-
-processDataImageInPlaceForceType(ctx::Proc, image::Ptr{Image}, procType::Integer) =
+function processDataImageInPlaceForceType(ctx::Proc, image::Ptr{Image},
+                                          procType::Integer)
     # int ncProcProcessDataImageInPlaceForceType(NcProc ctx, NcImage *image, int procType);
     @call(:ncProcProcessDataImageInPlaceForceType, Status,
           (Proc, Ptr{Image}, Cint), ctx, image, procType)
+end
 
 save(ctx::Proc, name::Name, overwrite::Bool) =
     # int ncProcSave(NcProc ctx, const char *saveName, int overwriteFlag);
@@ -1707,9 +1731,6 @@ function open(::Type{StatsCtx}, imageWidth::Integer, imageHeight::Integer)
     return statsCtx[]
 end
 
-close(statsCtx::StatsCtx) =
-    # int ncStatsClose(NcStatsCtx *statsCtx);
-    @call(:ncStatsClose, Status, (StatsCtx, ), statsCtx)
 
 resize(statsCtx::StatsCtx, imageWidth::Integer, imageHeight::Integer) =
     # int ncStatsResize(NcStatsCtx *statsCtx, int imageWidth, int imageHeight);
@@ -1741,14 +1762,14 @@ for i in 1:3
     # int ncStatsAddRegion(NcStatsCtx *statsCtx, int regionWidth,
     #         int regionHeight, int *regionIndex);
 
-    cf = (:ncCamStatsAddRegion,
-          :ncGrabStatsAddRegion,
-          :ncStatsAddRegion)[i]
+    f = (:ncCamStatsAddRegion,
+         :ncGrabStatsAddRegion,
+         :ncStatsAddRegion)[i]
 
     @eval function addRegion(handle::$T, regionWidth::Integer,
-                             regionHeight::Integer)
+        regionHeight::Integer)
         regionIndex = Ref{Cint}()
-        @call($cf, Status, ($T, Cint, Cint, Ptr{Cint}),
+        @call($f, Status, ($T, Cint, Cint, Ptr{Cint}),
               handle, regionWidth, regionHeight, regionIndex)
         return regionIndex[]
     end
@@ -1757,12 +1778,12 @@ for i in 1:3
     # int ncGrabStatsRemoveRegion(NcGrab grab, int regionIndex);
     # int ncStatsRemoveRegion(NcStatsCtx *statsCtx, int regionIndex);
 
-    cf = (:ncCamStatsRemoveRegion,
-          :ncGrabStatsRemoveRegion,
-          :ncStatsRemoveRegion)[i]
+    f = (:ncCamStatsRemoveRegion,
+         :ncGrabStatsRemoveRegion,
+         :ncStatsRemoveRegion)[i]
 
     @eval removeRegion(handle::$T, regionIndex::Integer) =
-        @call($cf, Status, ($T, Cint), handle, regionIndex)
+        @call($f, Status, ($T, Cint), handle, regionIndex)
 
     # int ncCamStatsResizeRegion(NcCam cam, int regionIndex,
     #         int regionWidth, int regionHeight);
@@ -1771,13 +1792,13 @@ for i in 1:3
     # int ncStatsResizeRegion(NcStatsCtx *statsCtx, int regionIndex,
     #         int regionWidth, int regionHeight);
 
-    cf = (:ncCamStatsResizeRegion,
-          :ncGrabStatsResizeRegion,
-          :ncStatsResizeRegion)[i]
+    f = (:ncCamStatsResizeRegion,
+         :ncGrabStatsResizeRegion,
+         :ncStatsResizeRegion)[i]
 
     @eval function resizeRegion(handle::$T, regionIndex::Integer,
-                                regionWidth::Integer, regionHeight::Integer)
-        @call($cf, Status, ($T, Cint, Cint, Cint),
+        regionWidth::Integer, regionHeight::Integer)
+        @call($f, Status, ($T, Cint, Cint, Cint),
               handle, regionIndex, regionWidth, regionHeight)
     end
 
@@ -1797,24 +1818,24 @@ for i in 1:3
     #         double **crossSectionHorizontal,
     #         double **crossSectionVertical);
 
-    cf = (:ncCamStatsGetCrossSection,
-          :ncGrabStatsGetCrossSection,
-          :ncStatsGetHistoCrossSection)[i]
+    f = (:ncCamStatsGetCrossSection,
+         :ncGrabStatsGetCrossSection,
+         :ncStatsGetHistoCrossSection)[i]
 
     @eval function getHistoCrossSection(handle::$T, regionIndex::Integer,
-                                        image::Ptr{Image}, xCoord::Integer,
-                                        yCoord::Integer)
+        image::Ptr{Image}, xCoord::Integer,
+        yCoord::Integer)
         stats = Array{Cdouble}(5)
         histo = Ref{Ptr{Cdouble}}()
         crossSectionHorizontal = Ref{Ptr{Cdouble}}()
         crossSectionVertical = Ref{Ptr{Cdouble}}()
-        @call($cf, Status,
+        @call($f, Status,
               ($T, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble},
                Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}),
               handle, regionIndex, image, xCoord, yCoord, stats, histo,
               crossSectionHorizontal, crossSectionVertical)
         return (stats, histo[], crossSectionHorizontal[],
-                crossSectionVertical[])
+        crossSectionVertical[])
     end
 
     # int ncCamStatsGetGaussFit(NcCam cam, int regionIndex,
@@ -1830,18 +1851,18 @@ for i in 1:3
     #         double *maxAmplitude, double gaussSumHorizontal[3],
     #         double gaussSumVertical[3], int useActualCrossSection);
 
-    cf = (:ncCamStatsGetGaussFit,
-          :ncGrabStatsGetGaussFit,
-          :ncStatsGetGaussFit)[i]
+    f = (:ncCamStatsGetGaussFit,
+         :ncGrabStatsGetGaussFit,
+         :ncStatsGetGaussFit)[i]
 
     @eval function getGaussFit(handle::$T, regionIndex::Integer,
-                               image::Ptr{Image}, xCoord::Integer,
-                               yCoord::Integer, useActualCrossSection::Bool)
+        image::Ptr{Image}, xCoord::Integer,
+        yCoord::Integer, useActualCrossSection::Bool)
         maxAmplitude = Ref{Cdouble}()
         gaussSumHorizontal = Array{Cdouble}(3)
         gaussSumVertical = Array{Cdouble}(3)
-        @call($cf, Status, ($T, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble},
-                            Ptr{Cdouble}, Ptr{Cdouble}, Cint),
+        @call($f, Status, ($T, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble},
+                           Ptr{Cdouble}, Ptr{Cdouble}, Cint),
               handle, regionIndex, image, xCoord, yCoord, maxAmplitude,
               gaussSumHorizontal, gaussSumVertical, useActualCrossSection)
         return maxAmplitude[], gaussSumHorizontal, gaussSumVertical
@@ -1874,254 +1895,254 @@ getParam(::Type{Function}, handle::Union{Cam,Grab}, name::Name) =
     getParamCallback(handle, name)
 
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # int ncGrabParamGetCountInt(NcGrab grab, int* count);
-    (Grab, :getParamCountInt, :ncGrabParamGetCountInt),
+    (:getParamCountInt, Grab, :ncGrabParamGetCountInt),
 
     # int ncCamParamGetCountInt(NcCam cam, int* count);
-    (Cam, :getParamCountInt, :ncCamParamGetCountInt),
+    (:getParamCountInt, Cam, :ncCamParamGetCountInt),
 
     # int ncGrabParamGetCountDbl(NcGrab grab, int* count);
-    (Grab, :getParamCountDbl, :ncGrabParamGetCountDbl),
+    (:getParamCountDbl, Grab, :ncGrabParamGetCountDbl),
 
     # int ncCamParamGetCountDbl(NcCam cam, int* count);
-    (Cam, :getParamCountDbl, :ncCamParamGetCountDbl),
+    (:getParamCountDbl, Cam, :ncCamParamGetCountDbl),
 
     # int ncGrabParamGetCountStr(NcGrab grab, int* count);
-    (Grab, :getParamCountStr, :ncGrabParamGetCountStr),
+    (:getParamCountStr, Grab, :ncGrabParamGetCountStr),
 
     # int ncCamParamGetCountStr(NcCam cam, int* count);
-    (Cam, :getParamCountStr, :ncCamParamGetCountStr),
+    (:getParamCountStr, Cam, :ncCamParamGetCountStr),
 
     # int ncGrabParamGetCountVoidPtr(NcGrab grab, int* count);
-    (Grab, :getParamCountVoidPtr, :ncGrabParamGetCountVoidPtr),
+    (:getParamCountVoidPtr, Grab, :ncGrabParamGetCountVoidPtr),
 
     # int ncCamParamGetCountVoidPtr(NcCam cam, int* count);
-    (Cam, :getParamCountVoidPtr, :ncCamParamGetCountVoidPtr),
+    (:getParamCountVoidPtr, Cam, :ncCamParamGetCountVoidPtr),
 
     # int ncGrabParamGetCountCallback(NcGrab grab, int* count);
-    (Grab, :getParamCountCallback, :ncGrabParamGetCountCallback),
+    (:getParamCountCallback, Grab, :ncGrabParamGetCountCallback),
 
     # int ncCamParamGetCountCallback(NcCam cam, int* count);
-    (Cam, :getParamCountCallback, :ncCamParamGetCountCallback))
+    (:getParamCountCallback, Cam, :ncCamParamGetCountCallback))
 
-    @eval function $jf(handle::$H)
+    @eval function $m(handle::$H)
         value = Ref{Cint}()
-        @call($cf, Status, ($H, Ptr{Cint}), handle, value)
+        @call($f, Status, ($H, Ptr{Cint}), handle, value)
         return value[]
     end
 
 end
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # int ncGrabParamSupportedInt(NcGrab grab, const char* paramName,
     #         int* supported);
-    (Grab, :supportedParamInt, :ncGrabParamSupportedInt),
+    (:supportedParamInt, Grab, :ncGrabParamSupportedInt),
 
     # int ncCamParamSupportedInt(NcCam cam, const char* paramName,
     #         int* supported);
-    (Cam, :supportedParamInt, :ncCamParamSupportedInt),
+    (:supportedParamInt, Cam, :ncCamParamSupportedInt),
 
     # int ncGrabParamSupportedDbl(NcGrab grab, const char* paramName, int* supported);
-    (Grab, :supportedParamDbl, :ncGrabParamSupportedDbl),
+    (:supportedParamDbl, Grab, :ncGrabParamSupportedDbl),
 
     # int ncCamParamSupportedDbl(NcCam cam, const char* paramName, int* supported);
-    (Cam, :supportedParamDbl, :ncCamParamSupportedDbl),
+    (:supportedParamDbl, Cam, :ncCamParamSupportedDbl),
 
     # int ncGrabParamSupportedStr(NcGrab grab, const char* paramName, int* supported);
-    (Grab, :supportedParamStr, :ncGrabParamSupportedStr),
+    (:supportedParamStr, Grab, :ncGrabParamSupportedStr),
 
     # int ncCamParamSupportedStr(NcCam cam, const char* paramName, int* supported);
-    (Cam, :supportedParamStr, :ncCamParamSupportedStr),
+    (:supportedParamStr, Cam, :ncCamParamSupportedStr),
 
     # int ncGrabParamSupportedVoidPtr(NcGrab grab, const char* paramName, int* supported);
-    (Grab, :supportedParamVoidPtr, :ncGrabParamSupportedVoidPtr),
+    (:supportedParamVoidPtr, Grab, :ncGrabParamSupportedVoidPtr),
 
     # int ncCamParamSupportedVoidPtr(NcCam cam, const char* paramName, int* supported);
-    (Cam, :supportedParamVoidPtr, :ncCamParamSupportedVoidPtr),
+    (:supportedParamVoidPtr, Cam, :ncCamParamSupportedVoidPtr),
 
     # int ncGrabParamSupportedCallback(NcGrab grab, const char* paramName, int* supported);
-    (Grab, :supportedParamCallback, :ncGrabParamSupportedCallback),
+    (:supportedParamCallback, Grab, :ncGrabParamSupportedCallback),
 
     # int ncCamParamSupportedCallback(NcCam cam, const char* paramName, int* supported);
-    (Cam, :supportedParamCallback, :ncCamParamSupportedCallback))
+    (:supportedParamCallback, Cam, :ncCamParamSupportedCallback))
 
-    @eval function $jf(handle::$H, name::Name)
+    @eval function $m(handle::$H, name::Name)
         flag = Ref{Cint}()
-        @call($cf, Status, ($H, Cstring, Ptr{Cint}), handle, name, flag)
+        @call($f, Status, ($H, Cstring, Ptr{Cint}), handle, name, flag)
         return (flag[] != 0)
     end
 
 end
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # int ncGrabParamGetNameInt(NcGrab grab, int index, const char** name);
-    (Grab, :getParamNameInt, :ncGrabParamGetNameInt),
+    (:getParamNameInt, Grab, :ncGrabParamGetNameInt),
 
     # int ncCamParamGetNameInt(NcCam cam, int index, const char** name);
-    (Cam, :getParamNameInt, :ncCamParamGetNameInt),
+    (:getParamNameInt, Cam, :ncCamParamGetNameInt),
 
     # int ncGrabParamGetNameDbl(NcGrab grab, int index, const char** name);
-    (Grab, :getParamNameDbl, :ncGrabParamGetNameDbl),
+    (:getParamNameDbl, Grab, :ncGrabParamGetNameDbl),
 
     # int ncCamParamGetNameDbl(NcCam cam, int index, const char** name);
-    (Cam, :getParamNameDbl, :ncCamParamGetNameDbl),
+    (:getParamNameDbl, Cam, :ncCamParamGetNameDbl),
 
     # int ncGrabParamGetNameStr(NcGrab grab, int index, const char** name);
-    (Grab, :getParamNameStr, :ncGrabParamGetNameStr),
+    (:getParamNameStr, Grab, :ncGrabParamGetNameStr),
 
     # int ncCamParamGetNameStr(NcCam cam, int index, const char** name);
-    (Cam, :getParamNameStr, :ncCamParamGetNameStr),
+    (:getParamNameStr, Cam, :ncCamParamGetNameStr),
 
     # int ncGrabParamGetNameVoidPtr(NcGrab grab, int index, const char** name);
-    (Grab, :getParamNameVoidPtr, :ncGrabParamGetNameVoidPtr),
+    (:getParamNameVoidPtr, Grab, :ncGrabParamGetNameVoidPtr),
 
     # int ncCamParamGetNameVoidPtr(NcCam cam, int index, const char** name);
-    (Cam, :getParamNameVoidPtr, :ncCamParamGetNameVoidPtr),
+    (:getParamNameVoidPtr, Cam, :ncCamParamGetNameVoidPtr),
 
     # int ncGrabParamGetNameCallback(NcGrab grab, int index, const char** name);
-    (Grab, :getParamNameCallback, :ncGrabParamGetNameCallback),
+    (:getParamNameCallback, Grab, :ncGrabParamGetNameCallback),
 
     # int ncCamParamGetNameCallback(NcCam cam, int index, const char** name);
-    (Cam, :getParamNameCallback, :ncCamParamGetNameCallback))
+    (:getParamNameCallback, Cam, :ncCamParamGetNameCallback))
 
-    @eval function $jf(handle::$H, index::Integer)
+    @eval function $m(handle::$H, index::Integer)
         ptr = Ref{Ptr{Cchar}}()
-        @call($cf, Status, ($H, Cint, Ptr{Ptr{Cchar}}), handle, index, ptr)
+        @call($f, Status, ($H, Cint, Ptr{Ptr{Cchar}}), handle, index, ptr)
         return unsafe_string(ptr[])
     end
 
 end
 
-for (H, jf, Tj, cf, Tc) in (
+for (m, H, Tj, f, Tc) in (
 
     # int ncGrabParamSetInt(NcGrab grab, const char* paramName, int value);
-    (Grab, :setParamInt, Integer, :ncGrabParamSetInt, Cint),
+    (:setParamInt, Grab, Integer, :ncGrabParamSetInt, Cint),
 
     # int ncCamParamSetInt(NcCam cam, const char* paramName, int value);
-    (Cam, :setParamInt, Integer, :ncCamParamSetInt, Cint),
+    (:setParamInt, Cam, Integer, :ncCamParamSetInt, Cint),
 
     # int ncGrabParamSetDbl(NcGrab grab, const char* paramName, double value);
-    (Grab, :setParamDbl, Real, :ncGrabParamSetDbl, Cdouble),
+    (:setParamDbl, Grab, Real, :ncGrabParamSetDbl, Cdouble),
 
     # int ncCamParamSetDbl(NcCam cam, const char* paramName, double value);
-    (Cam, :setParamDbl, Real, :ncCamParamSetDbl, Cdouble),
+    (:setParamDbl, Cam, Real, :ncCamParamSetDbl, Cdouble),
 
     # int ncGrabParamSetStr(NcGrab grab, const char* paramName,
     #         const char* value);
-    (Grab, :setParamStr, Name, :ncGrabParamSetStr, Cstring),
+    (:setParamStr, Grab, Name, :ncGrabParamSetStr, Cstring),
 
     # int ncCamParamSetStr(NcCam cam, const char* paramName, const char* value);
-    (Cam, :setParamStr, Name, :ncCamParamSetStr, Cstring),
+    (:setParamStr, Cam, Name, :ncCamParamSetStr, Cstring),
 
     # int ncGrabParamSetVoidPtr(NcGrab grab, const char* paramName,
     #         void* value);
-    (Grab, :setParamVoidPtr, Ptr, :ncGrabParamSetVoidPtr, Ptr{Void}),
+    (:setParamVoidPtr, Grab, Ptr, :ncGrabParamSetVoidPtr, Ptr{Void}),
 
     # int ncCamParamSetVoidPtr(NcCam cam, const char* paramName, void* value);
-    (Cam, :setParamVoidPtr, Ptr, :ncCamParamSetVoidPtr, Ptr{Void}))
+    (:setParamVoidPtr, Cam, Ptr, :ncCamParamSetVoidPtr, Ptr{Void}))
 
-    @eval $jf(handle::$H, name::Name, value::$Tj) =
-        @call($cf, Status, ($H, Cstring, $Tc), handle, name, value)
+    @eval $m(handle::$H, name::Name, value::$Tj) =
+        @call($f, Status, ($H, Cstring, $Tc), handle, name, value)
 
 end
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # int ncGrabParamSetCallback(NcGrab grab, const char* paramName,
     #         void(*callback)(void*), void* data);
-    (Grab, :setParamCallback, :ncGrabParamSetCallback),
+    (:setParamCallback, Grab, :ncGrabParamSetCallback),
 
     # int ncCamParamSetCallback(NcCam cam, const char* paramName,
     #         void(*callback)(void*), void *data);
-    (Cam, :setParamCallback, :ncCamParamSetCallback))
+    (:setParamCallback, Cam, :ncCamParamSetCallback))
 
-    @eval $jf(handle::$H, name::Name, fct::Ptr{Void}, data::Ptr{Void}) =
-        @call($cf, Status, ($H, Cstring, Ptr{Void}, Ptr{Void}),
+    @eval $m(handle::$H, name::Name, fct::Ptr{Void}, data::Ptr{Void}) =
+        @call($f, Status, ($H, Cstring, Ptr{Void}, Ptr{Void}),
               handle, name, fct, data)
 end
 
 
-for (H, jf, cf) in (
+for (m, H, f) in (
 
     # int ncGrabParamUnsetInt(NcGrab grab, const char * paramName);
-    (Grab, :unsetParamInt, :ncGrabParamUnsetInt),
+    (:unsetParamInt, Grab, :ncGrabParamUnsetInt),
 
     # int ncCamParamUnsetInt(NcCam cam, const char * paramName);
-    (Cam, :unsetParamInt, :ncCamParamUnsetInt),
+    (:unsetParamInt, Cam, :ncCamParamUnsetInt),
 
     # int ncGrabParamUnsetDbl(NcGrab grab, const char * paramName);
-    (Grab, :unsetParamDbl, :ncGrabParamUnsetDbl),
+    (:unsetParamDbl, Grab, :ncGrabParamUnsetDbl),
 
     # int ncCamParamUnsetDbl(NcCam cam, const char * paramName);
-    (Cam, :unsetParamDbl, :ncCamParamUnsetDbl),
+    (:unsetParamDbl, Cam, :ncCamParamUnsetDbl),
 
     # int ncGrabParamUnsetStr(NcGrab grab, const char * paramName);
-    (Grab, :unsetParamStr, :ncGrabParamUnsetStr),
+    (:unsetParamStr, Grab, :ncGrabParamUnsetStr),
 
     # int ncCamParamUnsetStr(NcCam cam, const char * paramName);
-    (Cam, :unsetParamStr, :ncCamParamUnsetStr),
+    (:unsetParamStr, Cam, :ncCamParamUnsetStr),
 
     # int ncGrabParamUnsetVoidPtr(NcGrab grab, const char * paramName);
-    (Grab, :unsetParamVoidPtr, :ncGrabParamUnsetVoidPtr),
+    (:unsetParamVoidPtr, Grab, :ncGrabParamUnsetVoidPtr),
 
     # int ncCamParamUnsetVoidPtr(NcCam cam, const char * paramName);
-    (Cam, :unsetParamVoidPtr, :ncCamParamUnsetVoidPtr),
+    (:unsetParamVoidPtr, Cam, :ncCamParamUnsetVoidPtr),
 
     # int ncGrabParamUnsetCallback(NcGrab grab, const char * paramName);
-    (Grab, :unsetParamCallback, :ncGrabParamUnsetCallback),
+    (:unsetParamCallback, Grab, :ncGrabParamUnsetCallback),
 
     # int ncCamParamUnsetCallback(NcCam cam, const char * paramName);
-    (Cam, :unsetParamCallback, :ncCamParamUnsetCallback))
+    (:unsetParamCallback, Cam, :ncCamParamUnsetCallback))
 
-    @eval $jf(handle::$H, name::Name) =
-        @call($cf, Status, ($H, Cstring), handle, name)
+    @eval $m(handle::$H, name::Name) =
+        @call($f, Status, ($H, Cstring), handle, name)
 
 end
 
 
-for (H, jf, cf, T) in (
+for (m, H, f, T) in (
 
     # int ncGrabParamGetInt(NcGrab grab, const char* paramName, int* value);
-    (Grab, :getParamInt, :ncGrabParamGetInt, Cint),
+    (:getParamInt, Grab, :ncGrabParamGetInt, Cint),
 
     # int ncCamParamGetInt(NcCam cam, const char* paramName, int* value);
-    (Cam, :getParamInt, :ncCamParamGetInt, Cint),
+    (:getParamInt, Cam, :ncCamParamGetInt, Cint),
 
     # int ncGrabParamGetDbl(NcGrab grab, const char* paramName, double* value);
-    (Grab, :getParamDbl, :ncGrabParamGetDbl, Cdouble),
+    (:getParamDbl, Grab, :ncGrabParamGetDbl, Cdouble),
 
     # int ncCamParamGetDbl(NcCam cam, const char* paramName, double* value);
-    (Cam, :getParamDbl, :ncCamParamGetDbl, Cdouble),
+    (:getParamDbl, Cam, :ncCamParamGetDbl, Cdouble),
 
     # int ncGrabParamGetStrSize(NcGrab grab, const char* paramName,
     #        int* valueSize);
-    (Grab, :getParamStrSize, :ncGrabParamGetStrSize, Cint),
+    (:getParamStrSize, Grab, :ncGrabParamGetStrSize, Cint),
 
     # int ncCamParamGetStrSize(NcCam cam, const char* paramName,
     #        int* valueSize);
-    (Cam, :getParamStrSize, :ncCamParamGetStrSize, Cint),
+    (:getParamStrSize, Cam, :ncCamParamGetStrSize, Cint),
 
     # int ncGrabParamGetVoidPtr(NcGrab grab, const char* paramName,
     #        void** value);
-    (Grab, :getParamVoidPtr, :ncGrabParamGetVoidPtr, Ptr{Void}),
+    (:getParamVoidPtr, Grab, :ncGrabParamGetVoidPtr, Ptr{Void}),
 
     # int ncCamParamGetVoidPtr(NcCam cam, const char* paramName,
     #        void** value);
-    (Cam, :getParamVoidPtr, :ncCamParamGetVoidPtr, Ptr{Void}))
+    (:getParamVoidPtr, Cam, :ncCamParamGetVoidPtr, Ptr{Void}))
 
-    @eval function $jf(handle::$H, name::Name)
+    @eval function $m(handle::$H, name::Name)
         value = ref{$T}()
-        @call($cf, Status, ($H, Cstring, Ptr{$T}), handle, name, value)
+        @call($f, Status, ($H, Cstring, Ptr{$T}), handle, name, value)
         return value[]
     end
 
 end
 
-for (H, cf) in (
+for (H, f) in (
 
     # int ncGrabParamGetStr(NcGrab grab, const char* paramName,
     #         char* outBuffer, int bufferSize);
@@ -2132,12 +2153,12 @@ for (H, cf) in (
     (Cam, :ncCamParamGetStr))
 
     @eval getParamStr(handle::$H, name::Name, buf::Array{Cchar}) =
-        @call($cf, Status, ($H, Cstring, Ptr{Cchar}, Cint),
+        @call($f, Status, ($H, Cstring, Ptr{Cchar}, Cint),
               handle, name, buf, sizeof(buf))
 
 end
 
-for (H, cf) in (
+for (H, f) in (
 
     # int ncGrabParamGetCallback(NcGrab grab, const char* paramName,
     #         void(**callback)(void*), void** data);
@@ -2150,7 +2171,7 @@ for (H, cf) in (
     @eval function getParamCallback(handle::$H, name::Name)
         fct = Ref{Ptr{Void}}()
         data = Ref{Ptr{Void}}()
-        @call($cf, Status, ($H, Cstring, Ptr{Ptr{Void}}, Ptr{Ptr{Void}}),
+        @call($f, Status, ($H, Cstring, Ptr{Ptr{Void}}, Ptr{Ptr{Void}}),
               handle, name, fct, data)
         return fct[], data[]
     end

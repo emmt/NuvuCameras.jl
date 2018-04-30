@@ -396,8 +396,8 @@ and the corresponding Julia methods.
 | ncProcResize                             | resize                              |
 | ncProcAddBiasImage                       | addBiasImage                        |
 | ncProcComputeBias                        | computeBias                         |
-| ncProcSetProcType                        | setType                             |
-| ncProcGetProcType                        | getType                             |
+| ncProcSetProcType                        | setProcType                         |
+| ncProcGetProcType                        | getPorcType                         |
 | ncProcProcessDataImageInPlace            | processDataImageInPlace             |
 | ncProcProcessDataImageInPlaceForceType   | processDataImageInPlaceForceType    |
 | ncProcGetImage                           | getImage                            |
