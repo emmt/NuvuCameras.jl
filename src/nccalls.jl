@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 295 have been currently interfaced.
+# 302 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -492,40 +492,14 @@ ncGrabSaveParam(grab::Grab, name::Name, overwrite::Bool) =
     @call(:ncGrabSaveParam, Status, (Grab, Cstring, Cint),
           grab, name, overwrite)
 
-#- # int ncGrabGetTimestampMode(NcGrab grab, int ctrlRequest, enum TimestampMode *timestampMode, int *gpsSignalValid);
-#- ncGrabGetTimestampMode(grab::Grab, ctrlRequest::Cint, timestampMode::Ptr{TimestampMode}, gpsSignalValid::Ptr{Cint}) =
-#-     @call(:ncGrabGetTimestampMode, Status,
-#-           (Grab, Cint, Ptr{TimestampMode}, Ptr{Cint}),
-#-           grab, ctrlRequest, timestampMode, gpsSignalValid)
 
-#- # int ncGrabSetTimestampInternal(NcGrab grab, struct tm *dateTime, int nbrUs);
-#- ncGrabSetTimestampInternal(grab::Grab, dateTime::Ptr{TmStruct}, nbrUs::Cint) =
-#-     @call(:ncGrabSetTimestampInternal, Status,
-#-           (Grab, Ptr{TmStruct}, Cint),
-#-           grab, dateTime, nbrUs)
 
-#- # int ncGrabGetCtrlTimestamp(NcGrab grab, NcImage* imageAcqu, struct tm *ctrTimestamp, double *ctrlSecondFraction, int *status);
-#- ncGrabGetCtrlTimestamp(grab::Grab, imageAcqu::Ptr{Image}, ctrTimestamp::Ptr{TmStruct}, ctrlSecondFraction::Ptr{Cdouble}, status::Ptr{Cint}) =
-#-     @call(:ncGrabGetCtrlTimestamp, Status,
-#-           (Grab, Ptr{Image}, Ptr{TmStruct}, Ptr{Cdouble}, Ptr{Cint}),
-#-           grab, imageAcqu, ctrTimestamp, ctrlSecondFraction, status)
-
-#- # int ncGrabGetHostSystemTimestamp(NcGrab grab, NcImage* imageAcqu, double *hostSystemTimestamp);
-#- ncGrabGetHostSystemTimestamp(grab::Grab, imageAcqu::Ptr{Image}, hostSystemTimestamp::Ptr{Cdouble}) =
-#-     @call(:ncGrabGetHostSystemTimestamp, Status,
-#-           (Grab, Ptr{Image}, Ptr{Cdouble}),
-#-           grab, imageAcqu, hostSystemTimestamp)
 
 #- # int ncGrabParamAvailable(NcGrab grab, enum Features param, int setting);
 #- ncGrabParamAvailable(grab::Grab, param::Features, setting::Cint) =
 #-     @call(:ncGrabParamAvailable, Status,
 #-           (Grab, Features, Cint),
 #-           grab, param, setting)
-
-setEvent(grab::Grab, fct::Ptr{Void}, data::Ptr{Void}) =
-    # int ncGrabSetEvent(NcGrab grab, NcCallbackFunc funcName, void* ncData);
-    @call(:ncGrabSetEvent, Status, (Grab, Ptr{Void}, Ptr{Void}),
-          grab, fct, data)
 
 #- # int ncGrabSendSerialBinaryComm(NcGrab grab, const char *command, int length);
 #- ncGrabSendSerialBinaryComm(grab::Grab, command::Ptr{Cchar}, length::Cint) =
@@ -1012,8 +986,6 @@ function startSaveAcquisition(cam::Cam, saveName::Cstring,
           nbrOfCubes, overwriteFlag)
 end
 
-
-
 #- # int ncCamSaveImageSetCompressionType(NcCam cam, enum ImageCompression compress);
 #- ncCamSaveImageSetCompressionType(cam::Cam, compress::ImageCompression) =
 #-     @call(:ncCamSaveImageSetCompressionType, Status,
@@ -1026,41 +998,101 @@ end
 #-           (Cam, Ptr{ImageCompression}),
 #-           cam, compress)
 
-setEvent(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
-# int ncCamSetEvent(NcCam cam, NcCallbackFunc funcName, void *ncData);
-    @call(:ncCamSetEvent, Status, (Cam, Ptr{Void}, Ptr{Void}),
-          cam, fct, data)
 
+#------------------------------------------------------------------------------
+# TIMESTAMP FUNCTIONS
 
-function getTimestampMode(cam::Cam, cameraRequest::Bool)
-    timestampMode = Ref{TimestampMode}()
-    gpsSignalValid = Ref{Cint}()
+for (H, cf) in (
+
+    # int ncGrabGetTimestampMode(NcGrab grab, int ctrlRequest,
+    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
+    (Grab, :ncGrabGetTimestampMode),
+
     # int ncCamGetTimestampMode(NcCam cam, int cameraRequest,
-    #         enum TimestampMode *timestampMode,
-    #         int *gpsSignalValid);
-    @call(:ncCamGetTimestampMode, Status,
-          (Cam, Cint, Ptr{TimestampMode}, Ptr{Cint}),
-          cam, cameraRequest, timestampMode, gpsSignalValid)
-    return timestampMode[], (gpsSignalValid[] != 0)
+    #         enum TimestampMode *timestampMode, int *gpsSignalValid);
+    (Cam, :ncCamGetTimestampMode))
+
+    @eval function getTimestampMode(handle::$H, cameraRequest::Bool)
+        timestampMode = Ref{TimestampMode}()
+        gpsSignalValid = Ref{Cint}()
+        @call($cf, Status, ($H, Cint, Ptr{TimestampMode}, Ptr{Cint}),
+              handle, cameraRequest, timestampMode, gpsSignalValid)
+        return timestampMode[], (gpsSignalValid[] != 0)
+    end
+
 end
 
-#- # int ncCamSetTimestampInternal(NcCam cam, struct tm *dateTime, int nbrUs);
-#- ncCamSetTimestampInternal(cam::Cam, dateTime::Ptr{TmStruct}, nbrUs::Cint) =
-#-     @call(:ncCamSetTimestampInternal, Status,
-#-           (Cam, Ptr{TmStruct}, Cint),
-#-           cam, dateTime, nbrUs)
+for (H, cf) in (
 
-#- # int ncCamGetCtrlTimestamp(NcCam cam, NcImage* imageAcqu, struct tm *ctrTimestamp, double *ctrlSecondFraction, int *status);
-#- ncCamGetCtrlTimestamp(cam::Cam, imageAcqu::Ptr{Image}, ctrTimestamp::Ptr{TmStruct}, ctrlSecondFraction::Ptr{Cdouble}, status::Ptr{Cint}) =
-#-     @call(:ncCamGetCtrlTimestamp, Status,
-#-           (Cam, Ptr{Image}, Ptr{TmStruct}, Ptr{Cdouble}, Ptr{Cint}),
-#-           cam, imageAcqu, ctrTimestamp, ctrlSecondFraction, status)
+    # int ncGrabSetTimestampInternal(NcGrab grab, struct tm *dateTime, int nbrUs);
+    (Grab, :ncGrabSetTimestampInternal),
 
-#- # int ncCamGetHostSystemTimestamp(NcCam cam, NcImage* imageAcqu, double *hostSystemTimestamp);
-#- ncCamGetHostSystemTimestamp(cam::Cam, imageAcqu::Ptr{Image}, hostSystemTimestamp::Ptr{Cdouble}) =
-#-     @call(:ncCamGetHostSystemTimestamp, Status,
-#-           (Cam, Ptr{Image}, Ptr{Cdouble}),
-#-           cam, imageAcqu, hostSystemTimestamp)
+    # int ncCamSetTimestampInternal(NcCam cam, struct tm *dateTime, int nbrUs);
+    (Cam, :ncCamSetTimestampInternal))
+
+    @eval function setTimestampInternal(handle::$H,
+                                        dateTime::Union{Ref{TmStruct},
+                                                        Ptr{TmStruct}},
+                                        nbrUs::Integer)
+        @call($cf, Status, ($H, Ptr{TmStruct}, Cint), handle, dateTime, nbrUs)
+    end
+
+end
+
+function setTimestampInternal(handle::Union{Cam,Grab}, dateTime::TmStruct,
+                              nbrUs::Integer)
+    setTimestampInternal(handle, Ref(dateTime), nbrUs)
+end
+
+for (H, cf) in (
+
+    # int ncGrabGetCtrlTimestamp(NcGrab grab, NcImage* imageAcqu,
+    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
+    #         int *status);
+    (Grab, :ncGrabGetCtrlTimestamp),
+
+    # int ncCamGetCtrlTimestamp(NcCam cam, NcImage* imageAcqu,
+    #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
+    #         int *status);
+    (Cam, :ncCamGetCtrlTimestamp))
+
+    @eval function getCtrlTimestamp(handle::$H, imageAcqu::Ptr{Image},
+                                    ctrTimestamp::Union{Ref{TmStruct},
+                                                        Ptr{TmStruct}})
+        ctrlSecondFraction = Ref{Cdouble}()
+        status = Ref{Cint}
+        @call($cf, Status, ($H, Ptr{Image}, Ptr{TmStruct}, Ptr{Cdouble}, Ptr{Cint}),
+              handle, imageAcqu, ctrTimestamp, ctrlSecondFraction, status)
+        return ctrTimestamp[], ctrlSecondFraction[], status[]
+    end
+
+end
+
+function getCtrlTimestamp(handle::Union{Cam,Grab}, imageAcqu::Ptr{Image})
+    ctrTimestamp = Ref{TmStruct}()
+    return getCtrlTimestamp(handle, imageAcqu, ctrTimestamp)
+end
+
+for (H, cf) in (
+
+    # int ncGrabGetHostSystemTimestamp(NcGrab grab, NcImage* imageAcqu,
+    #         double *hostSystemTimestamp);
+    (Grab, :ncGrabGetHostSystemTimestamp),
+
+    # int ncCamGetHostSystemTimestamp(NcCam cam, NcImage* imageAcqu,
+    #         double *hostSystemTimestamp);
+    (Cam, :ncCamGetHostSystemTimestamp))
+
+    @eval function getHostSystemTimestamp(handle::$H, imageAcqu::Ptr{Image})
+        hostSystemTimestamp = Ref{Cdouble}()
+        @call($cf, Status, ($H, Ptr{Image}, Ptr{Cdouble}),
+              handle, imageAcqu, hostSystemTimestamp)
+        return hostSystemTimestamp[]
+    end
+
+end
+
+#------------------------------------------------------------------------------
 
 #- # int ncCamParamAvailable(NcCam cam, enum Features param, int setting);
 #- ncCamParamAvailable(cam::Cam, param::Features, setting::Cint) =
@@ -1301,6 +1333,9 @@ for (H, jf, cf) in (
 
     # Frame grabber callbacks.
 
+    # int ncGrabSetEvent(NcGrab grab, NcCallbackFunc funcName, void* ncData);
+    (Grab, :setEvent, :ncGrabSetEvent),
+
     # int ncGrabSaveImageSetHeaderCallback(NcGrab grab,
     #         void (*fct)(NcGrab grab, NcImageSaved *imageFile, void *data),
     #         void *data);
@@ -1330,6 +1365,9 @@ for (H, jf, cf) in (
 
 
     # Camera callbacks.
+
+    # int ncCamSetEvent(NcCam cam, NcCallbackFunc funcName, void *ncData);
+    (Cam, :setEvent, :ncCamSetEvent),
 
     # int ncCamReadyToClose(NcCam cam, void (*fct)(NcCam cam, void *data),
     #         void *data);
