@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 307 have been currently interfaced.
+# 332 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -138,7 +138,6 @@ function open(::Type{CtrlList}, basic::Bool = false)
     return ctrlList[]
 end
 
-
 for (m, f) in (
 
     # int ncControllerListGetSerial(const NcCtrlList ctrlList,
@@ -198,7 +197,7 @@ end
 
 
 #------------------------------------------------------------------------------
-# GRAB FUNCTIONS
+# FRAME GRABBER FUNCTIONS
 
 setOpenMacAddress(::Type{Grab}, macAddress::Name) =
     # int ncGrabSetOpenMacAdress(char* macAddress);
@@ -242,30 +241,28 @@ function saveImage(grab::Grab, image::DenseMatrix{<:PixelTypes}, name::Name,
     saveImage(grab, pointer(image), name, saveFormat, overwrite)
 end
 
-#- # int ncGrabParamAvailable(NcGrab grab, enum Features param, int setting);
-#- ncGrabParamAvailable(grab::Grab, param::Features, setting::Cint) =
-#-     @call(:ncGrabParamAvailable, Status,
-#-           (Grab, Features, Cint),
-#-           grab, param, setting)
+"""
+```julia
+NC.isParamAvailable(handle, param, setting) -> boolean
+```
 
-#- # int ncGrabSendSerialBinaryComm(NcGrab grab, const char *command, int length);
-#- ncGrabSendSerialBinaryComm(grab::Grab, command::Ptr{Cchar}, length::Cint) =
-#-     @call(:ncGrabSendSerialBinaryComm, Status,
-#-           (Grab, Ptr{Cchar}, Cint),
-#-           grab, command, length)
+yields whether parameter `param`, possibly with value `setting`, is available
+for acquisition device `handle`.
 
-#- # int ncGrabWaitSerialCmd(NcGrab grab, int length, int* numByte);
-#- ncGrabWaitSerialCmd(grab::Grab, length::Cint, numByte::Ptr{Cint}) =
-#-     @call(:ncGrabWaitSerialCmd, Status,
-#-           (Grab, Cint, Ptr{Cint}),
-#-           grab, length, numByte)
+""" isParamAvailable
 
-#- # int ncGrabRecSerial(NcGrab grab, char *recBuffer, int length, int* numByte);
-#- ncGrabRecSerial(grab::Grab, recBuffer::Ptr{Cchar}, length::Cint, numByte::Ptr{Cint}) =
-#-     @call(:ncGrabRecSerial, Status,
-#-           (Grab, Ptr{Cchar}, Cint, Ptr{Cint}),
-#-           grab, recBuffer, length, numByte)
+for (m, H, f) in (
+    # int ncGrabParamAvailable(NcGrab grab, enum Features param, int setting);
+    (:isParamAvailable, Grab, :ncGrabParamAvailable),
 
+    # int ncCamParamAvailable(NcCam cam, enum Features param, int setting);
+    (:isParamAvailable, Cam, :ncCamParamAvailable))
+
+    @eval $m(handle::$H, param::Features, setting::Integer) =
+        (@call(:ncCamParamAvailable, Cint, ($H, Features, Cint),
+               handle, param, setting) == SUCCESS.code)
+
+end
 
 #- # int ncGrabGetVersion(NcGrab grab, enum VersionType versionType, char * version, int bufferSize);
 #- ncGrabGetVersion(grab::Grab, versionType::VersionType, version::Ptr{Cchar}, bufferSize::Cint) =
@@ -382,19 +379,6 @@ function saveImage(cam::Cam, image::DenseMatrix{<:PixelTypes}, name::Name,
     saveImage(cam, pointer(image), name, saveFormat, comments, overwrite)
 end
 
-#- # int ncCamSaveImageSetCompressionType(NcCam cam, enum ImageCompression compress);
-#- ncCamSaveImageSetCompressionType(cam::Cam, compress::ImageCompression) =
-#-     @call(:ncCamSaveImageSetCompressionType, Status,
-#-           (Cam, ImageCompression),
-#-           cam, compress)
-
-#- # int ncCamSaveImageGetCompressionType(NcCam cam, enum ImageCompression *compress);
-#- ncCamSaveImageGetCompressionType(cam::Cam, compress::Ptr{ImageCompression}) =
-#-     @call(:ncCamSaveImageGetCompressionType, Status,
-#-           (Cam, Ptr{ImageCompression}),
-#-           cam, compress)
-
-
 #------------------------------------------------------------------------------
 # TIMESTAMP FUNCTIONS
 
@@ -410,17 +394,6 @@ end
 
 #------------------------------------------------------------------------------
 
-#- # int ncCamParamAvailable(NcCam cam, enum Features param, int setting);
-#- ncCamParamAvailable(cam::Cam, param::Features, setting::Cint) =
-#-     @call(:ncCamParamAvailable, Status,
-#-           (Cam, Features, Cint),
-#-           cam, param, setting)
-
-#- # int ncCamSaveParam(NcCam cam, const char* saveName, int overwriteFlag);
-#- ncCamSaveParam(cam::Cam, saveName::Ptr{Cchar}, overwriteFlag::Cint) =
-#-     @call(:ncCamSaveParam, Status,
-#-           (Cam, Ptr{Cchar}, Cint),
-#-           cam, saveName, overwriteFlag)
 
 #- # int ncCamGetCurrentReadoutMode(NcCam cam, int* readoutMode, enum Ampli* ampliType, char* ampliString, int *vertFreq, int *horizFreq);
 #- ncCamGetCurrentReadoutMode(cam::Cam, readoutMode::Ptr{Cint}, ampliType::Ptr{Ampli}, ampliString::Ptr{Cchar}, vertFreq::Ptr{Cint}, horizFreq::Ptr{Cint}) =
@@ -434,41 +407,13 @@ end
 #-           (Cam, Cint, Ptr{Ampli}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint}),
 #-           cam, number, ampliType, ampliString, vertFreq, horizFreq)
 
-#- # int ncCamGetAmpliTypeAvail(NcCam cam, enum Ampli ampli, int *number);
-#- ncCamGetAmpliTypeAvail(cam::Cam, ampli::Ampli, number::Ptr{Cint}) =
-#-     @call(:ncCamGetAmpliTypeAvail, Status,
-#-           (Cam, Ampli, Ptr{Cint}),
-#-           cam, ampli, number)
-
-#- # int ncCamGetFreqAvail(NcCam cam, enum Ampli ampli, int ampliNo, int *vertFreq, int *horizFreq, int* readoutModeNo);
-#- ncCamGetFreqAvail(cam::Cam, ampli::Ampli, ampliNo::Cint, vertFreq::Ptr{Cint}, horizFreq::Ptr{Cint}, readoutModeNo::Ptr{Cint}) =
-#-     @call(:ncCamGetFreqAvail, Status,
-#-           (Cam, Ampli, Cint, Ptr{Cint}, Ptr{Cint}, Ptr{Cint}),
-#-           cam, ampli, ampliNo, vertFreq, horizFreq, readoutModeNo)
-
-#- # int ncCamSetTriggerMode(NcCam cam, enum TriggerMode triggerMode, int nbrImages);
-#- ncCamSetTriggerMode(cam::Cam, triggerMode::TriggerMode, nbrImages::Cint) =
-#-     @call(:ncCamSetTriggerMode, Status,
-#-           (Cam, TriggerMode, Cint),
-#-           cam, triggerMode, nbrImages)
-
-#- # int ncCamGetTriggerMode(NcCam cam, int cameraRequest, enum TriggerMode* triggerMode, int* nbrImagesPerTrig);
-#- ncCamGetTriggerMode(cam::Cam, cameraRequest::Cint, triggerMode::Ptr{TriggerMode}, nbrImagesPerTrig::Ptr{Cint}) =
-#-     @call(:ncCamGetTriggerMode, Status,
-#-           (Cam, Cint, Ptr{TriggerMode}, Ptr{Cint}),
-#-           cam, cameraRequest, triggerMode, nbrImagesPerTrig)
-
-#- # int ncCamGetComponentTemp(NcCam cam, enum NcTemperatureType temp, double * value);
-#- ncCamGetComponentTemp(cam::Cam, temp::TemperatureType, value::Ptr{Cdouble}) =
-#-     @call(:ncCamGetComponentTemp, Status,
-#-           (Cam, TemperatureType, Ptr{Cdouble}),
-#-           cam, temp, value)
-
-#- # int ncCamGetSerialNumber(NcCam cam, char *sn);
-#- ncCamGetSerialNumber(cam::Cam, sn::Ptr{Cchar}) =
-#-     @call(:ncCamGetSerialNumber, Status,
-#-           (Cam, Ptr{Cchar}),
-#-           cam, sn)
+# int ncCamGetSerialNumber(NcCam cam, char *sn);
+function getSerialNumber(cam::Cam)
+    buf = Array{Cchar}(64)
+    @call(:ncCamGetSerialNumber, Status, (Cam, Ptr{Cchar}), cam, buf)
+    buf[end] = 0
+    return unsafe_string(pointer(buf))
+end
 
 #- # int ncCamDetectorTypeEnumToString(enum DetectorType detectorType, const char** str);
 #- ncCamDetectorTypeEnumToString(detectorType::DetectorType, str::Ptr{Ptr{Cchar}}) =
@@ -476,59 +421,6 @@ end
 #-           (DetectorType, Ptr{Ptr{Cchar}}),
 #-           detectorType, str)
 
-#- # int ncCamSetBinningMode(NcCam cam, int binXValue, int binYValue);
-#- ncCamSetBinningMode(cam::Cam, binXValue::Cint, binYValue::Cint) =
-#-     @call(:ncCamSetBinningMode, Status,
-#-           (Cam, Cint, Cint),
-#-           cam, binXValue, binYValue)
-
-#- # int ncCamSetMRoiSize(NcCam cam, int index, int width, int height);
-#- ncCamSetMRoiSize(cam::Cam, index::Cint, width::Cint, height::Cint) =
-#-     @call(:ncCamSetMRoiSize, Status,
-#-           (Cam, Cint, Cint, Cint),
-#-           cam, index, width, height)
-
-#- # int ncCamGetMRoiSize(NcCam cam, int index, int * width, int * height);
-#- ncCamGetMRoiSize(cam::Cam, index::Cint, width::Ptr{Cint}, height::Ptr{Cint}) =
-#-     @call(:ncCamGetMRoiSize, Status,
-#-           (Cam, Cint, Ptr{Cint}, Ptr{Cint}),
-#-           cam, index, width, height)
-
-#- # int ncCamSetMRoiPosition(NcCam cam, int index, int offsetX, int offsetY);
-#- ncCamSetMRoiPosition(cam::Cam, index::Cint, offsetX::Cint, offsetY::Cint) =
-#-     @call(:ncCamSetMRoiPosition, Status,
-#-           (Cam, Cint, Cint, Cint),
-#-           cam, index, offsetX, offsetY)
-
-#- # int ncCamGetMRoiPosition(NcCam cam, int index, int * offsetX, int * offsetY);
-#- ncCamGetMRoiPosition(cam::Cam, index::Cint, offsetX::Ptr{Cint}, offsetY::Ptr{Cint}) =
-#-     @call(:ncCamGetMRoiPosition, Status,
-#-           (Cam, Cint, Ptr{Cint}, Ptr{Cint}),
-#-           cam, index, offsetX, offsetY)
-
-#- # int ncCamAddMRoi(NcCam cam, int offsetX, int offsetY, int width, int height);
-#- ncCamAddMRoi(cam::Cam, offsetX::Cint, offsetY::Cint, width::Cint, height::Cint) =
-#-     @call(:ncCamAddMRoi, Status,
-#-           (Cam, Cint, Cint, Cint, Cint),
-#-           cam, offsetX, offsetY, width, height)
-
-#- # int ncCamGetMRoiRegionCount(ImageParams params, int * count);
-#- ncCamGetMRoiRegionCount(params::ImageParams, count::Ptr{Cint}) =
-#-     @call(:ncCamGetMRoiRegionCount, Status,
-#-           (ImageParams, Ptr{Cint}),
-#-           params, count)
-
-#- # int ncCamMRoiHasChanges(NcCam cam, int * hasChanges);
-#- ncCamMRoiHasChanges(cam::Cam, hasChanges::Ptr{Cint}) =
-#-     @call(:ncCamMRoiHasChanges, Status,
-#-           (Cam, Ptr{Cint}),
-#-           cam, hasChanges)
-
-#- # int ncCamMRoiCanApplyWithoutStop(NcCam cam, int * nonStop);
-#- ncCamMRoiCanApplyWithoutStop(cam::Cam, nonStop::Ptr{Cint}) =
-#-     @call(:ncCamMRoiCanApplyWithoutStop, Status,
-#-           (Cam, Ptr{Cint}),
-#-           cam, nonStop)
 
 #- # int ncCamGetVersion(NcCam cam, enum VersionType versionType, char * version, int bufferSize);
 #- ncCamGetVersion(cam::Cam, versionType::VersionType, version::Ptr{Cchar}, bufferSize::Cint) =
@@ -536,17 +428,6 @@ end
 #-           (Cam, VersionType, Ptr{Cchar}, Cint),
 #-           cam, versionType, version, bufferSize)
 
-#- # int ncCamNbrImagesAcquired(NcCam cam, int *nbrImages);
-#- ncCamNbrImagesAcquired(cam::Cam, nbrImages::Ptr{Cint}) =
-#-     @call(:ncCamNbrImagesAcquired, Status,
-#-           (Cam, Ptr{Cint}),
-#-           cam, nbrImages)
-
-#- # int ncCamGetSafeShutdownTemperature(NcCam cam, double *safeTemperature, int *dontCare);
-#- ncCamGetSafeShutdownTemperature(cam::Cam, safeTemperature::Ptr{Cdouble}, dontCare::Ptr{Cint}) =
-#-     @call(:ncCamGetSafeShutdownTemperature, Status,
-#-           (Cam, Ptr{Cdouble}, Ptr{Cint}),
-#-           cam, safeTemperature, dontCare)
 
 #------------------------------------------------------------------------------
 # CALLBACKS
@@ -891,9 +772,13 @@ end
 # `m` is the Julia method, `H` is the handle type, `f` is the C function to
 # call, `T` is the C type of the retrieved value.
 #
-# If `T` is `Bool`, then a `Cint` is retrieved and a boolean result is returned.
+# If `T` is `Bool`, then a `Cint` is retrieved and a boolean result is
+# returned.
 #
 for (m, H, f, T) in (
+
+    # int ncCamMRoiCanApplyWithoutStop(NcCam cam, int* nonStop);
+    (:canApplyWithoutStop, Cam, :ncCamMRoiCanApplyWithoutStop, Bool),
 
     # int ncProcGetBiasClampLevel(NcProc ctx, int* biasLevel);
     (:getBiasClampLevel, Proc, :ncProcGetBiasClampLevel, Cint),
@@ -925,6 +810,12 @@ for (m, H, f, T) in (
 
     # int ncCamGetMRoiCount(NcCam cam, int * count);
     (:getMRoiCount, Cam, :ncCamGetMRoiCount, Cint),
+
+    # int ncCamMRoiHasChanges(NcCam cam, int* hasChanges);
+    (:getMRoiHasChanges, Cam, :ncCamMRoiHasChanges, Bool),
+
+    # int ncCamGetMRoiRegionCount(ImageParams params, int * count);
+    (:getMRoiRegionCount, ImageParams, :ncCamGetMRoiRegionCount, Cint),
 
     # int ncCamGetMRoiCountMax(NcCam cam, int * count);
     (:getMRoiCountMax, Cam, :ncCamGetMRoiCountMax, Cint),
@@ -968,8 +859,13 @@ for (m, H, f, T) in (
 
     # int ncGrabSaveImageGetCompressionType(NcGrab grab,
     #         enum ImageCompression *compress);
-    (:getSaveImageCompressionType, Grab,
+    (:getCompressionType, Grab,
      :ncGrabSaveImageGetCompressionType, ImageCompression),
+
+    # int ncCamSaveImageGetCompressionType(NcCam cam,
+    #         enum ImageCompression *compress);
+    (:getCompressionType, Cam,
+     :ncCamSaveImageGetCompressionType, ImageCompression),
 
     # int ncGrabGetSerialTimeout(NcGrab grab, int *serialTimeout);
     (:getSerialTimeout, Grab, :ncGrabGetSerialTimeout, Cint),
@@ -991,6 +887,9 @@ for (m, H, f, T) in (
 
     # int ncGrabNbrImagesAcquired(NcGrab grab, int *nbrImages);
     (:nbrImagesAcquired, Grab, :ncGrabNbrImagesAcquired, Cint),
+
+    # int ncCamNbrImagesAcquired(NcCam cam, int *nbrImages);
+    (:nbrImagesAcquired, Cam, :ncCamNbrImagesAcquired, Cint),
 
     # int ncGrabRead(NcGrab grab, NcImage** imageAcqu);
     (:read, Grab, :ncGrabRead, Ptr{Image}),
@@ -1018,6 +917,9 @@ end
 #
 # `m` is the Julia method, `H` is the handle type, `f` is the C function to
 # call, `T1` and `T2` are the C types of the retrieved values.
+#
+# It the type of the last output argument is `Bool`, then a `Cint` is retrieved
+# and a boolean value is returned.
 #
 for (m, H, f, T1, T2) in (
 
@@ -1070,6 +972,11 @@ for (m, H, f, T1, T2) in (
     #         int* rawEmGainMax);
     (:getRawEmGainRange, Cam, :ncCamGetRawEmGainRange, Cint, Cint),
 
+    # int ncCamGetSafeShutdownTemperature(NcCam cam, double *safeTemperature,
+    #         int *dontCare);
+    (:getSafeShutdownTemperature, Cam,
+     :ncCamGetSafeShutdownTemperature, Cdouble, Bool),
+
     # int ncGrabGetSize(NcGrab grab, int* width, int* height);
     (:getSize, Grab, :ncGrabGetSize, Cint, Cint),
 
@@ -1099,11 +1006,20 @@ for (m, H, f, T1, T2) in (
     (:readChronologicalNonBlocking, Cam,
      :ncCamReadChronologicalNonBlocking, Ptr{Image}, Cint))
 
-    @eval function $m(handle::$H)
-        out1::Ref{$T1}()
-        out2::Ref{$T2}()
-        @call($f, Status, ($H, Ptr{$T1}, Ptr{$T2}), handle, out1, out2)
-        return out1[], out2[]
+    if T2 == Bool
+        @eval function $m(handle::$H)
+            out1::Ref{$T1}()
+            out2::Ref{Cint}()
+            @call($f, Status, ($H, Ptr{$T1}, Ptr{Cint}), handle, out1, out2)
+            return out1[], (out2[] != zero(Cint))
+        end
+    else
+        @eval function $m(handle::$H)
+            out1::Ref{$T1}()
+            out2::Ref{$T2}()
+            @call($f, Status, ($H, Ptr{$T1}, Ptr{$T2}), handle, out1, out2)
+            return out1[], out2[]
+        end
     end
 
 end
@@ -1219,8 +1135,13 @@ for (m, H, Tj, f, Tc) in (
 
     # int ncGrabSaveImageSetCompressionType(NcGrab grab,
     #         enum ImageCompression compress);
-    (:setSaveImageCompressionType, Grab, ImageCompression,
+    (:setCompressionType, Grab, ImageCompression,
      :ncGrabSaveImageSetCompressionType, ImageCompression),
+
+    # int ncCamSaveImageSetCompressionType(NcCam cam,
+    #         enum ImageCompression compress);
+    (:setCompressionType, Cam, ImageCompression,
+     :ncCamSaveImageSetCompressionType, ImageCompression),
 
     # int ncGrabSetSerialTimeout(NcGrab grab, int serialTimeout);
     (:setSerialTimeout, Grab, Integer, :ncGrabSetSerialTimeout, Cint),
@@ -1305,6 +1226,18 @@ for (m, H, Tj1, Tj2, f, Tc1, Tc2) in (
     #         int overwriteFlag);
     (:saveParam, Grab, Name, Bool, :ncGrabSaveParam, Cstring, Cint),
 
+    # int ncCamSaveParam(NcCam cam, const char* saveName, int overwriteFlag);
+    (:saveParam, Cam, Name, Bool, :ncCamSaveParam, Cstring, Cint),
+
+    # int ncGrabSendSerialBinaryComm(NcGrab grab, const char *command,
+    #         int length);
+    (:sendSerialCommand, Grab, Ptr{Char}, Integer,
+     :ncGrabSendSerialBinaryComm, Ptr{Cchar}, Cint),
+
+    # int ncCamSetBinningMode(NcCam cam, int binXValue, int binYValue);
+    (:setBinningMode, Cam, Integer, Integer,
+     :ncCamSetBinningMode, Cint, Cint),
+
     # int ncGrabSetSize(NcGrab grab, int width, int height);
     (:setSize, Grab, Integer, Integer,
      :ncGrabSetSize, Cint, Cint),
@@ -1325,10 +1258,38 @@ for (m, H, Tj1, Tj2, f, Tc1, Tc2) in (
     # int ncCamSetTimestampInternal(NcCam cam, struct tm *dateTime,
     #         int nbrUs);
     (:setTimestampInternal, Cam, Union{Ref{TmStruct},Ptr{TmStruct}}, Integer,
-     :ncCamSetTimestampInternal, Ptr{TmStruct}, Cint))
+     :ncCamSetTimestampInternal, Ptr{TmStruct}, Cint),
+
+    # int ncCamSetTriggerMode(NcCam cam, enum TriggerMode triggerMode,
+    #         int nbrImages);
+    (:setTriggerMode, Cam, TriggerMode, Integer,
+     :ncCamSetTriggerMode, TriggerMode, Cint))
 
     @eval $m(handle::$H, inp1::$Tj1, inp2::$Tj2) =
         @call($f, Status, ($H, $Tc1, $Tc2), handle, inp1, inp2)
+
+end
+
+#
+# Methods for a handle and 3 other input arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1`, ..., `Tj3` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1`,
+# ..., `Tc3` are the C types of the input arguments.
+#
+for (m, H, Tj1, Tj2, Tj3, f, Tc1, Tc2, Tc3) in (
+
+    # int ncCamSetMRoiPosition(NcCam cam, int index, int offsetX, int offsetY);
+    (:setMRoiPosition, Cam, Integer, Integer, Integer,
+     :ncCamSetMRoiPosition, Cint, Cint, Cint),
+
+    # int ncCamSetMRoiSize(NcCam cam, int index, int width, int height);
+    (:setMRoiSize, Cam, Integer, Integer, Integer,
+     :ncCamSetMRoiSize, Cint, Cint, Cint),
+)
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2, inp3::$Tj3)
+        @call($f, Status, ($H, $Tc1, $Tc2, $Tc3), handle, inp1, inp2, inp3)
+    end
 
 end
 
@@ -1341,6 +1302,11 @@ end
 #
 for (m, H, Tj1, Tj2, Tj3, Tj4, f, Tc1, Tc2, Tc3, Tc4) in (
 
+    # int ncCamAddMRoi(NcCam cam, int offsetX, int offsetY,
+    #         int width, int height);
+    (:addMRoi, Cam, Integer, Integer, Integer, Integer,
+     :ncCamAddMRoi, Cint, Cint, Cint, Cint),
+
     # int ncWriteFileHeader(NcImageSaved *currentFile,
     #         enum HeaderDataType dataType, const char *name,
     #         const void *value, const char *comment);
@@ -1351,8 +1317,8 @@ for (m, H, Tj1, Tj2, Tj3, Tj4, f, Tc1, Tc2, Tc3, Tc4) in (
     #         const char* saveName, enum ImageFormat saveFormat,
     #         int overwriteFlag);
     (:saveImage, Grab, Ptr{Image}, Name, ImageFormat, Bool,
-     :ncGrabSaveImage, Ptr{Image}, Cstring, ImageFormat, Cint))
-
+     :ncGrabSaveImage, Ptr{Image}, Cstring, ImageFormat, Cint),
+)
     @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
                       inp3::$Tj3, inp4::$Tj4)
         @call($f, Status, ($H, $Tc1, $Tc2, $Tc3, $Tc4),
@@ -1399,7 +1365,8 @@ for (m, H, Tj1, Tj2, Tj3, Tj4, Tj5, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
     #         int imagesPerCubes, int nbrOfCubes,
     #         int overwriteFlag);
     (:startSaveAcquisition, Grab, Name, ImageFormat, Integer, Integer, Bool,
-     :ncGrabStartSaveAcquisition, Cstring, ImageFormat, Cint, Cint, Cint))
+     :ncGrabStartSaveAcquisition, Cstring, ImageFormat, Cint, Cint, Cint),
+)
 
     @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
                       inp3::$Tj3, inp4::$Tj4, inp5::$Tj5)
@@ -1423,14 +1390,17 @@ for (m, H, Tj1, Tj2, Tj3, Tj4, Tj5, Tj6, f, Tc1, Tc2, Tc3, Tc4, Tc5, Tc6) in (
     #         enum ImageDataType dataFormat,
     #         const char* addComments, int overwriteFlag);
     (:saveImage, Cam, Ptr{Void}, Name, ImageFormat, ImageDataType, Name, Bool,
-     :ncCamSaveImageEx, Ptr{Void}, Cstring, ImageFormat, ImageDataType, Cstring, Cint),
+     :ncCamSaveImageEx, Ptr{Void}, Cstring, ImageFormat, ImageDataType,
+     Cstring, Cint),
 
     # int ncCamStartSaveAcquisition(NcCam cam, const char *saveName,
     #         enum ImageFormat saveFormat, int imagesPerCubes,
     #         const char *addComments, int nbrOfCubes, int overwriteFlag);
-    (:startSaveAcquisition, Cam, Name, ImageFormat, Integer, Name, Integer, Bool,
-     :ncCamStartSaveAcquisition, Cstring, ImageFormat, Cint, Cstring, Cint, Cint))
-
+    (:startSaveAcquisition, Cam, Name, ImageFormat, Integer, Name, Integer,
+     Bool,
+     :ncCamStartSaveAcquisition, Cstring, ImageFormat, Cint, Cstring, Cint,
+     Cint),
+)
     @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2,
                       inp3::$Tj3, inp4::$Tj4, inp5::$Tj5, inp6::$Tj6)
         @call($f, Status, ($H, $Tc1, $Tc2, $Tc3, $Tc4, $Tc5, $Tc6),
@@ -1447,6 +1417,10 @@ end
 # input argument and `Tc2` is the C type of the output argument.
 #
 for (m, H, Tj1, f, Tc1, Tc2) in (
+
+    # int ncCamGetAmpliTypeAvail(NcCam cam, enum Ampli ampli, int *number);
+    (:getAmpliTypeAvail, Cam, Ampli,
+     :ncCamGetAmpliTypeAvail, Ampli, Cint),
 
     # int ncCamGetAnalogGain(NcCam cam, int cameraRequest, int* analogGain);
     (:getAnalogGain, Cam, Bool,
@@ -1466,6 +1440,11 @@ for (m, H, Tj1, f, Tc1, Tc2) in (
     #         int *calibratedEmGain);
     (:getCalibratedEmGain, Cam, Bool,
      :ncCamGetCalibratedEmGain, Cint, Cint),
+
+    # int ncCamGetComponentTemp(NcCam cam, enum NcTemperatureType temp,
+    #         double* value);
+    (:getComponentTemp, Cam, TemperatureType,
+     :ncCamGetComponentTemp, TemperatureType, Cdouble),
 
     # int ncCamGetExposureTime(NcCam cam, int cameraRequest,
     #         double* exposureTime);
@@ -1579,8 +1558,12 @@ for (m, H, Tj1, f, Tc1, Tc2) in (
     # int ncCamReadFloatChronologicalNonBlocking(NcCam cam,
     #         float* imageAcqu, int* nbrImagesSkipped);
     (:readChronologicalNonBlocking, Cam, ImageBuffer{Cfloat},
-     :ncCamReadFloatChronologicalNonBlocking, Ptr{Cfloat}, Cint))
+     :ncCamReadFloatChronologicalNonBlocking, Ptr{Cfloat}, Cint),
 
+    # int ncGrabWaitSerialCmd(NcGrab grab, int length, int* numByte);
+    (:waitSerialCommand, Grab, Integer,
+     :ncGrabWaitSerialCmd, Cint, Cint),
+)
     @eval function $m(handle::$H, inp::$Tj1)
         out = Ref{$Tc2}()
         @call($f, Status, ($H, $Tc1, Ptr{$Tc2}), handle, inp, out)
@@ -1596,7 +1579,19 @@ end
 # the input argument, `f` is the C function to call, `Tc1` is the C type of the
 # input argument and `Tc2` and `Tc3` are the C type of the output arguments.
 #
+# It the type of the last output argument is `Bool`, then a `Cint` is retrieved
+# and a boolean value is returned.
+#
 for (m, H, Tj1, f, Tc1, Tc2, Tc3) in (
+
+    # int ncCamGetMRoiPosition(NcCam cam, int index,
+    #         int* offsetX, int* offsetY);
+    (:getMRoiPosition, Cam, Integer,
+     :ncCamGetMRoiPosition, Cint, Cint, Cint),
+
+    # int ncCamGetMRoiSize(NcCam cam, int index, int* width, int* height);
+    (:getMRoiSize, Cam, Integer,
+     :ncCamGetMRoiSize, Cint, Cint, Cint),
 
     # int ncGrabGetTimestampMode(NcGrab grab, int ctrlRequest,
     #         enum TimestampMode *timestampMode, int *gpsSignalValid);
@@ -1606,8 +1601,13 @@ for (m, H, Tj1, f, Tc1, Tc2, Tc3) in (
     # int ncCamGetTimestampMode(NcCam cam, int cameraRequest,
     #         enum TimestampMode *timestampMode, int *gpsSignalValid);
     (:getTimestampMode, Cam, Bool,
-     :ncCamGetTimestampMode, Cint, TimestampMode, Bool))
+     :ncCamGetTimestampMode, Cint, TimestampMode, Bool),
 
+    # int ncCamGetTriggerMode(NcCam cam, int cameraRequest,
+    #         enum TriggerMode* triggerMode, int* nbrImagesPerTrig);
+    (:getTriggerMode, Cam, Bool,
+     :ncCamGetTriggerMode, Cint, TriggerMode, Cint),
+)
     if Tc3 == Bool
         @eval function $m(handle::$H, inp::$Tj1)
             out1 = Ref{$Tc2}()
@@ -1648,8 +1648,8 @@ for (m, H, Tj1, f, Tc1, Tc2, Tc3, Tc4) in (
     #         struct tm *ctrTimestamp, double *ctrlSecondFraction,
     #         int *status);
     (:getCtrlTimestamp, Cam, Ptr{Image},
-     :ncCamGetCtrlTimestamp, Ptr{Image}, TmStruct, Cdouble, Cint))
-
+     :ncCamGetCtrlTimestamp, Ptr{Image}, TmStruct, Cdouble, Cint),
+)
     @eval function $m(handle::$H, inp::$Tj1)
         out1 = Ref{$Tc2}()
         out2 = Ref{$Tc3}()
@@ -1679,8 +1679,8 @@ for (m, H, Tj1, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
     # int ncCamGetMRoiOutputRegion(ImageParams params, int index,
     #         int * offsetX, int* offsetY, int* width, int* height);
     (:getMRoiOutputRegion, ImageParams{Cam}, Integer,
-     :ncCamGetMRoiOutputRegion, Cint, Cint, Cint, Cint, Cint))
-
+     :ncCamGetMRoiOutputRegion, Cint, Cint, Cint, Cint, Cint),
+)
     @eval function $m(handle::$H, inp::$Tj1)
         out1 = Ref{$Tc2}()
         out2 = Ref{$Tc3}()
@@ -1690,6 +1690,54 @@ for (m, H, Tj1, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
               ($H, $Tc1, Ptr{$Tc2}, Ptr{$Tc3}, Ptr{$Tc4}, Ptr{$Tc5}),
               handle, inp, out1, out2, out3, out4)
         return (out1[], out2[], out3[], out4[])
+    end
+
+end
+
+#
+# Methods for a handle, 2 input arguments and 1 output argument.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` and `Tj2` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1` and
+# `Tc2` are the C type of the input arguments and `Tc3` is the C type of the
+# output argument.
+#
+for (m, H, Tj1, Tj2, f, Tc1, Tc2, Tc3) in (
+
+    # int ncGrabRecSerial(NcGrab grab, char *recBuffer, int length,
+    #         int* numByte);
+    (:readSerial, Grab, Union{DenseVector{Cchar},Ptr{Cchar}}, Integer,
+     :ncGrabRecSerial, Ptr{Cchar}, Cint, Cint),
+)
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2)
+        out = Ref{$Tc3}()
+        @call($f, Status, ($H, $Tc1, $Tc2, Ptr{$Tc3}), handle, inp1, inp2, out)
+        return out[]
+    end
+
+end
+
+#
+# Methods for a handle, 2 input arguments and 2 output arguments.
+#
+# `m` is the Julia method, `H` is the handle type, `Tj1` and `Tj2` are the
+# Julia types of the input arguments, `f` is the C function to call, `Tc1` and
+# `Tc2` are the C type of the input arguments, `Tc3` and `Tc4` are the C type
+# of the output arguments.
+#
+for (m, H, Tj1, Tj2, f, Tc1, Tc2, Tc3, Tc4) in (
+
+    # int ncCamGetFreqAvail(NcCam cam, enum Ampli ampli, int ampliNo,
+    #         int *vertFreq, int *horizFreq, int* readoutModeNo);
+    (:getFreqAvail, Cam, Ampli, Integer,
+     :ncCamGetFreqAvail, Ampli, Cint, Cint, Cint),
+)
+    @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2)
+        out1 = Ref{$Tc3}()
+        out2 = Ref{$Tc4}()
+        @call($f, Status, ($H, $Tc1, $Tc2, Ptr{$Tc3}, Ptr{$Tc4}),
+              handle, inp1, inp2, out1, out2)
+        return out1[], out2[]
     end
 
 end

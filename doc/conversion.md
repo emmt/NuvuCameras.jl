@@ -126,13 +126,13 @@ and the corresponding Julia methods.
 | ncGrabGetSize                            | getSize                             |
 | ncGrabSaveImage                          | saveImage                           |
 | ncGrabSaveImageEx                        | saveImage                           |
-| ncGrabStartSaveAcquisition               |                                     |
+| ncGrabStartSaveAcquisition               | startSaveAcquisition                |
 | ncGrabStopSaveAcquisition                | stopSaveAcquisition                 |
 | ncGrabSaveImageSetHeaderCallback         | setWriteHeaderCallback              |
 | ncGrabSaveImageWriteCallback             | setWriteImageCallback               |
 | ncGrabSaveImageCloseCallback             | setCloseImageCallback               |
-| ncGrabSaveImageSetCompressionType        |                                     |
-| ncGrabSaveImageGetCompressionType        |                                     |
+| ncGrabSaveImageSetCompressionType        | setCompressionType                  |
+| ncGrabSaveImageGetCompressionType        | getCompressionType                  |
 | ncGrabSaveParam                          | saveParam                           |
 | ncGrabLoadParam                          | loadParam                           |
 | ncGrabSaveParamSetHeaderCallback         | setSaveParamHeaderCallback          |
@@ -142,20 +142,20 @@ and the corresponding Julia methods.
 | ncGrabSetTimestampInternal               | setTimestampInternal                |
 | ncGrabGetCtrlTimestamp                   | getCtrlTimestamp                    |
 | ncGrabGetHostSystemTimestamp             | getHostSystemTimestamp              |
-| ncGrabParamAvailable                     |                                     |
-| ncGrabResetTimer                         |                                     |
+| ncGrabParamAvailable                     | isParamAvailable                    |
+| ncGrabResetTimer                         | resetTimer                          |
 | ncGrabSetEvent                           | setEvent                            |
-| ncGrabCancelEvent                        |                                     |
+| ncGrabCancelEvent                        | cancelEvent                         |
 | ncGrabSetSerialTimeout                   | setSerialTimeout                    |
 | ncGrabGetSerialTimeout                   | getSerialTimeout                    |
 | ncGrabSetBaudrate                        | setBaudrate                         |
-| ncGrabSendSerialBinaryComm               |                                     |
-| ncGrabWaitSerialCmd                      |                                     |
-| ncGrabRecSerial                          |                                     |
+| ncGrabSendSerialBinaryComm               | sendSerialCommand                   |
+| ncGrabWaitSerialCmd                      | waitSerialCommand                   |
+| ncGrabRecSerial                          | readSerial                          |
 | ncGrabGetSerialUnreadBytes               | getSerialUnreadBytes                |
-| ncGrabNbrImagesAcquired                  |                                     |
+| ncGrabNbrImagesAcquired                  | nbrImagesAcquired                   |
 | ncGrabGetVersion                         | getVersion                          |
-| ncGrabCreateBias                         |                                     |
+| ncGrabCreateBias                         | createBias                          |
 | ncGrabCancelBiasCreation                 | cancelBiasCreation                  |
 | ncGrabSetProcType                        | setProcType                         |
 | ncGrabGetProcType                        | getProcType                         |
@@ -234,22 +234,22 @@ and the corresponding Julia methods.
 | ncCamSaveUInt32Image                     | saveImage                           |
 | ncCamSaveFloatImage                      | saveImage                           |
 | ncCamSaveImageEx                         | saveImage                           |
-| ncCamStartSaveAcquisition                |                                     |
+| ncCamStartSaveAcquisition                | startSaveAcquisition                |
 | ncCamStopSaveAcquisition                 | stopSaveAcquisition                 |
 | ncCamSaveImageSetHeaderCallback          | setWriteHeaderCallback              |
 | ncCamSaveImageWriteCallback              | setWriteImageCallback               |
 | ncCamSaveImageCloseCallback              | setCloseImageCallback               |
-| ncCamSaveImageSetCompressionType         |                                     |
-| ncCamSaveImageGetCompressionType         |                                     |
-| ncCamResetTimer                          |                                     |
+| ncCamSaveImageSetCompressionType         | setCompressionType                  |
+| ncCamSaveImageGetCompressionType         | getCompressionType                  |
+| ncCamResetTimer                          | resetTimer                          |
 | ncCamSetEvent                            | setEvent                            |
-| ncCamCancelEvent                         |                                     |
+| ncCamCancelEvent                         | cancelEvent                         |
 | ncCamSetTimestampMode                    | setTimestampMode                    |
 | ncCamGetTimestampMode                    | getTimestampMode                    |
 | ncCamSetTimestampInternal                | setTimestampInternal                |
 | ncCamGetCtrlTimestamp                    | getCtrlTimestamp                    |
 | ncCamGetHostSystemTimestamp              | getHostSystemTimestamp              |
-| ncCamParamAvailable                      |                                     |
+| ncCamParamAvailable                      | isParamAvailable                    |
 | ncCamSaveParam                           | saveParam                           |
 | ncCamLoadParam                           | loadParam                           |
 | ncCamSaveParamSetHeaderCallback          | setSaveParamHeaderCallback          |
@@ -312,22 +312,22 @@ and the corresponding Julia methods.
 | ncCamGetMRoiPosition                     | getMRoiPosition                     |
 | ncCamGetMRoiCount                        | getMRoiCount                        |
 | ncCamGetMRoiCountMax                     | getMRoiCountMax                     |
-| ncCamAddMRoi                             |                                     |
-| ncCamDeleteMRoi                          |                                     |
+| ncCamAddMRoi                             | addMRoi                             |
+| ncCamDeleteMRoi                          | deleteMRoi                          |
 | ncCamGetMRoiInputRegion                  | getMRoiInputRegion                  |
 | ncCamGetMRoiOutputRegion                 | getMRoiOutputRegion                 |
 | ncCamGetMRoiRegionCount                  | getMRoiRegionCount                  |
-| ncCamMRoiApply                           |                                     |
-| ncCamMRoiRollback                        |                                     |
-| ncCamMRoiHasChanges                      |                                     |
-| ncCamMRoiCanApplyWithoutStop             |                                     |
+| ncCamMRoiApply                           | applyMRoi                           |
+| ncCamMRoiRollback                        | rollbackMRoi                        |
+| ncCamMRoiHasChanges                      | getMRoiHasChanges                   |
+| ncCamMRoiCanApplyWithoutStop             | canApplyWithoutStop                 |
 | ncCamGetVersion                          | getVersion                          |
 | ncCamGetActiveRegion                     | getActiveRegion                     |
 | ncCamGetFullCCDSize                      | getFullCCDSize                      |
-| ncCamNbrImagesAcquired                   |                                     |
+| ncCamNbrImagesAcquired                   | nbrImagesAcquired                   |
 | ncCamGetSafeShutdownTemperature          | getSafeShutdownTemperature          |
-| ncCamCreateBias                          |                                     |
-| ncCamCancelBiasCreation                  |                                     |
+| ncCamCreateBias                          | createBias                          |
+| ncCamCancelBiasCreation                  | cancelBiasCreation                  |
 | ncCamGetProcType                         | getProcType                         |
 | ncCamSetProcType                         | setProcType                         |
 | ncCamCreateBiasNewImageCallback          | setCreateBiasCallback               |
