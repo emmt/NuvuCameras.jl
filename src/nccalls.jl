@@ -12,8 +12,8 @@
 # The methods defined here directly call the C functions of the Nüvü Camēras
 # SDK with some simplifications to make them easy to use (see documentation).
 #
-# There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 335 have been currently interfaced.
+# All 337 non-deprecated functions in the Nüvü Camēras SDK are currently
+# interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -58,6 +58,34 @@ function __symbol(x::Expr)
         return __symbol(x.args[1])
     end
     error("bad argument (expected a symbol, a name or a variable)")
+end
+
+"""
+```julia
+stringify!(v)
+```
+
+converts a vector of bytes into a Julia string.  For efficiency, the returned
+string owns the vector so you must not change the vector after calling this
+method.  The methods assumes that the vector has been filled using the
+same convention as C and assumes that the first null byte (if any) marks the end
+of the string and resize the vector accordingly.
+
+See also: [`String`](@ref),  [`resize!`](@ref).
+
+"""
+function stringify!(buf::Vector{UInt8})
+    # The `String` constructor accepts a vector of bytes (`UInt8`) to create a
+    # new string which subsequently owns the vector (so you must not change it
+    # as strings are supposed to be immutable in Julia).
+    len = length(buf)
+    @inbounds for i in 1:len
+        if buf[i] == zero(T)
+            resize!(buf, i - 1)
+            break
+        end
+    end
+    return String(buf)
 end
 
 function fetcharray(ptr::Ptr{T}, n::Integer) where {T}
@@ -119,8 +147,7 @@ function readFileHeader(currentFile::ImageSaved, ::Type{Val{STRING}},
     @call(:ncReadFileHeader, Status,
           (ImageSaved, HeaderDataType, Cstring, Ptr{Cchar}),
           currentFile, INT, name, buf)
-    buf[end] = 0
-    return unsafe_string(pointer(buf))
+    return __string(pointer(buf))
 end
 
 #------------------------------------------------------------------------------
@@ -183,14 +210,13 @@ for (m, f) in (
             # Assume index was out of bound.
             throw(NuvuCameraError($qf, ERROR_OUT_OF_BOUNDS))
         end
-        buf = Array{Cchar}(nbytes)
-        ptr = pointer(buf)
-        status = Status(@call($f, Cint, (CtrlList, Cint, Ptr{Cchar}, Cint),
+        buf = Array{UInt8}(nbytes)
+        status = Status(@call($f, Cint, (CtrlList, Cint, Ptr{UInt8}, Cint),
                               ctrlList, index, ptr, nbytes))
         if status != SUCCESS
             throw(NuvuCameraError($qf, status))
         end
-        return unsafe_string(ptr, nbytes - 1)
+        return stringify!(ptr)
     end
 
 end
@@ -398,34 +424,70 @@ for (m, H, f) in (
     (:getVersion, Cam, :ncCamGetVersion),
 )
     @eval function $m(handle::$H, versionType::VersionType)
-        buf = Array{Cchar}(256)
+        buf = Array{UInt8}(256)
         @call($f, Status,
-              ($H, VersionType, Ptr{Cchar}, Cint),
+              ($H, VersionType, Ptr{UInt8}, Cint),
               handle, versionType, buf, sizeof(buf) - 1)
-        buf[end] = 0
-        return unsafe_string(pointer(buf))
+        return stringify!(buf)
     end
 end
 
 function getSerialNumber(cam::Cam)
-    buf = Array{Cchar}(64) # FIXME: the doc. says 32 is enough...
+    buf = Array{UInt8}(64) # FIXME: the doc. says 32 is enough...
     # int ncCamGetSerialNumber(NcCam cam, char *sn);
-    @call(:ncCamGetSerialNumber, Status, (Cam, Ptr{Cchar}), cam, buf)
-    buf[end] = 0
-    return unsafe_string(pointer(buf))
+    @call(:ncCamGetSerialNumber, Status, (Cam, Ptr{UInt8}), cam, buf)
+    return stringify!(buf)
 end
 
-#- # int ncCamGetCurrentReadoutMode(NcCam cam, int* readoutMode, enum Ampli* ampliType, char* ampliString, int *vertFreq, int *horizFreq);
-#- ncCamGetCurrentReadoutMode(cam::Cam, readoutMode::Ptr{Cint}, ampliType::Ptr{Ampli}, ampliString::Ptr{Cchar}, vertFreq::Ptr{Cint}, horizFreq::Ptr{Cint}) =
-#-     @call(:ncCamGetCurrentReadoutMode, Status,
-#-           (Cam, Ptr{Cint}, Ptr{Ampli}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint}),
-#-           cam, readoutMode, ampliType, ampliString, vertFreq, horizFreq)
+"""
+```julia
+getCurrentReadoutMode(cam) -> numb, amptyp, ampstr, vfreq, hfreq
+```
 
-#- # int ncCamGetReadoutMode(NcCam cam, int number, enum Ampli* ampliType, char* ampliString, int *vertFreq, int *horizFreq);
-#- ncCamGetReadoutMode(cam::Cam, number::Cint, ampliType::Ptr{Ampli}, ampliString::Ptr{Cchar}, vertFreq::Ptr{Cint}, horizFreq::Ptr{Cint}) =
-#-     @call(:ncCamGetReadoutMode, Status,
-#-           (Cam, Cint, Ptr{Ampli}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint}),
-#-           cam, number, ampliType, ampliString, vertFreq, horizFreq)
+yields the current readout mode of camera `cam`.  Returned values are the
+readout mode number `numb`, the amplifier type `amptyp` (`Ampli`), its name
+`ampstr` and the corresponding vertical and horizontal frequencies `vfreq`, and
+`hfreq`.
+
+"""
+function getCurrentReadoutMode(cam::Cam)
+    readoutMode = Ref{Cint}()
+    ampliType = Ref{Ampli}()
+    ampliString = Array{UInt8}(32) # see the examples...
+    vertFreq = Ref{Cint}()
+    horizFreq = Ref{Cint}()
+    # int ncCamGetCurrentReadoutMode(NcCam cam, int* readoutMode,
+    #         enum Ampli* ampliType, char* ampliString, int *vertFreq,
+    #         int *horizFreq);
+    @call(:ncCamGetCurrentReadoutMode, Status,
+          (Cam, Ptr{Cint}, Ptr{Ampli}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}),
+          cam, readoutMode, ampliType, ampliString, vertFreq, horizFreq)
+    return (readoutMode[], ampliType[], stringify!(ampliString),
+            vertFreq[], horizFreq[])
+end
+
+"""
+```julia
+getReadoutMode(cam, i) -> amptyp, ampstr, vfreq, hfreq
+```
+
+yields the `i`-th readout mode of camera `cam`.  Returned values are the
+amplifier type `amptyp` (`Ampli`), its name `ampstr` and the corresponding
+vertical and horizontal frequencies `vfreq`, and `hfreq`.
+
+"""
+function getReadoutMode(cam::Cam, number::Integer)
+    # int ncCamGetReadoutMode(NcCam cam, int number, enum Ampli* ampliType,
+    #         char* ampliString, int *vertFreq, int *horizFreq);
+    ampliType = Ref{Ampli}()
+    ampliString = Array{UInt8}(32) # see the examples...
+    vertFreq = Ref{Cint}()
+    horizFreq = Ref{Cint}()
+    @call(:ncCamGetReadoutMode, Status,
+          (Cam, Cint, Ptr{Ampli}, Ptr{UInt8}, Ptr{Cint}, Ptr{Cint}),
+          cam, number, ampliType, ampliString, vertFreq, horizFreq)
+    return (ampliType[], stringify!(ampliString), vertFreq[], horizFreq[])
+end
 
 # FIXME: undocumented
 function getDetectorTypeName(detectorType::DetectorType)
@@ -1725,26 +1787,27 @@ for (m, H, Tj1, Tj2, f, Tc1, Tc2, Tc3) in (
 end
 
 #
-# Methods for a handle, 2 input arguments and 2 output arguments.
+# Methods for a handle, 2 input arguments and 3 output arguments.
 #
 # `m` is the Julia method, `H` is the handle type, `Tj1` and `Tj2` are the
 # Julia types of the input arguments, `f` is the C function to call, `Tc1` and
-# `Tc2` are the C type of the input arguments, `Tc3` and `Tc4` are the C type
+# `Tc2` are the C type of the input arguments, `Tc3` to `Tc5` are the C type
 # of the output arguments.
 #
-for (m, H, Tj1, Tj2, f, Tc1, Tc2, Tc3, Tc4) in (
+for (m, H, Tj1, Tj2, f, Tc1, Tc2, Tc3, Tc4, Tc5) in (
 
     # int ncCamGetFreqAvail(NcCam cam, enum Ampli ampli, int ampliNo,
     #         int *vertFreq, int *horizFreq, int* readoutModeNo);
     (:getFreqAvail, Cam, Ampli, Integer,
-     :ncCamGetFreqAvail, Ampli, Cint, Cint, Cint),
+     :ncCamGetFreqAvail, Ampli, Cint, Cint, Cint, Cint),
 )
     @eval function $m(handle::$H, inp1::$Tj1, inp2::$Tj2)
         out1 = Ref{$Tc3}()
         out2 = Ref{$Tc4}()
-        @call($f, Status, ($H, $Tc1, $Tc2, Ptr{$Tc3}, Ptr{$Tc4}),
-              handle, inp1, inp2, out1, out2)
-        return out1[], out2[]
+        out3 = Ref{$Tc5}()
+        @call($f, Status, ($H, $Tc1, $Tc2, Ptr{$Tc3}, Ptr{$Tc4}, Ptr{$Tc5}),
+              handle, inp1, inp2, out1, out2, out3)
+        return (out1[], out2[], out3[])
     end
 
 end
@@ -1940,10 +2003,9 @@ getParam(::Type{T}, handle::Union{Cam,Grab}, name::Name) where {T<:AbstractFloat
 
 function getParam(::Type{String}, handle::Union{Cam,Grab}, name::Name)
     siz = getParamStrSize(handle, name)
-    buf = Array{Cchar}(siz + 1) # FIXME: check this!
+    buf = Array{UInt8}(siz + 1) # FIXME: check this!
     getParamStr(handle, name, buf)
-    buf[end] = 0
-    return unsafe_string(pointer(buf)) # FIXME: is there a better way?
+    return stringify!(buf)
 end
 
 getParam(::Type{Function}, handle::Union{Cam,Grab}, name::Name) =
