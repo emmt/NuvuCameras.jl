@@ -98,7 +98,8 @@ function main()
     NC.CamClose(myCam)
 
     if is_windows()
-	println("\nHit the Return key to close the command window.")
+	print("\nHit the Return key to close the command window.")
+        flush(STDOUT)
         readline(STDIN)
     else
 	println("The program ended.")

@@ -11,6 +11,7 @@ end
 include("../examples/simpleAcquisition.jl")
 include("../examples/chronologicalAcquisition.jl")
 include("../examples/timedAcquisition.jl")
+include("../examples/readoutModesAvailability.jl")
 
 # write your own tests here
 #@test 1 == 1
