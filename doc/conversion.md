@@ -160,11 +160,6 @@ and the corresponding Julia methods.
 | ncGrabSetProcType                        | setProcType                         |
 | ncGrabGetProcType                        | getProcType                         |
 | ncGrabCreateBiasNewImageCallback         |                                     |
-| ncGrabStatsAddRegion                     |                                     |
-| ncGrabStatsRemoveRegion                  |                                     |
-| ncGrabStatsResizeRegion                  |                                     |
-| ncGrabStatsGetCrossSection               |                                     |
-| ncGrabStatsGetGaussFit                   |                                     |
 | ncGrabParamSupportedInt                  | supportedParamInt                   |
 | ncGrabParamSupportedDbl                  | supportedParamDbl                   |
 | ncGrabParamSupportedStr                  | supportedParamStr                   |
@@ -336,11 +331,6 @@ and the corresponding Julia methods.
 | ncCamGetProcType                         | getProcType                         |
 | ncCamSetProcType                         | setProcType                         |
 | ncCamCreateBiasNewImageCallback          |                                     |
-| ncCamStatsAddRegion                      |                                     |
-| ncCamStatsRemoveRegion                   |                                     |
-| ncCamStatsResizeRegion                   |                                     |
-| ncCamStatsGetCrossSection                |                                     |
-| ncCamStatsGetGaussFit                    |                                     |
 | ncCamSetOnStatusAlertCallback            | setOnStatusAlertCallback            |
 | ncCamSetOnStatusUpdateCallback           | setOnStatusUpdateCallback           |
 | ncCamSetStatusPollRate                   | setStatusPollRate                   |
@@ -431,10 +421,20 @@ and the corresponding Julia methods.
 | ncStatsOpen                              | open                                |
 | ncStatsClose                             | close                               |
 | ncStatsResize                            | resize                              |
+| ncCamStatsAddRegion                      | addRegion                           |
+| ncGrabStatsAddRegion                     | addRegion                           |
 | ncStatsAddRegion                         | addRegion                           |
+| ncCamStatsRemoveRegion                   | removeRegion                        |
+| ncGrabStatsRemoveRegion                  | removeRegion                        |
 | ncStatsRemoveRegion                      | removeRegion                        |
+| ncCamStatsResizeRegion                   | resizeRegion                        |
+| ncGrabStatsResizeRegion                  | resizeRegion                        |
 | ncStatsResizeRegion                      | resizeRegion                        |
+| ncCamStatsGetCrossSection                | getHistoCrossSection                |
+| ncGrabStatsGetCrossSection               | getHistoCrossSection                |
 | ncStatsGetHistoCrossSection              | getHistoCrossSection                |
+| ncCamStatsGetGaussFit                    | getGaussFit                         |
+| ncGrabStatsGetGaussFit                   | getGaussFit                         |
 | ncStatsGetGaussFit                       | getGaussFit                         |
 
 

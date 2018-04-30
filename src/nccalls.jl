@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 270 have been currently interfaced.
+# 283 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -362,10 +362,7 @@ for (jf, Tj, cf, Tc) in (
     (:resetTimer, Real, :ncGrabResetTimer, Cdouble),
 
     # int ncGrabCreateBias(NcGrab grab, int nbrImages);
-    (:createBias, Integer, :ncGrabCreateBias, Cint),
-
-    # int ncGrabStatsRemoveRegion(NcGrab grab, int regionIndex);
-    (:removeRegion, Integer, :ncGrabStatsRemoveRegion, Cint))
+    (:createBias, Integer, :ncGrabCreateBias, Cint))
 
     @eval begin
 
@@ -625,29 +622,6 @@ end
 #-           (Grab, Ptr{Void}, Ptr{Void}),
 #-           grab, fct, data)
 
-#- # int ncGrabStatsAddRegion(NcGrab grab, int regionWidth, int regionHeight, int *regionIndex);
-#- @inline ncGrabStatsAddRegion(grab::Grab, regionWidth::Cint, regionHeight::Cint, regionIndex::Ptr{Cint}) =
-#-     @call(:ncGrabStatsAddRegion, Status,
-#-           (Grab, Cint, Cint, Ptr{Cint}),
-#-           grab, regionWidth, regionHeight, regionIndex)
-
-#- # int ncGrabStatsResizeRegion(NcGrab grab, int regionIndex, int regionWidth, int regionHeight);
-#- @inline ncGrabStatsResizeRegion(grab::Grab, regionIndex::Cint, regionWidth::Cint, regionHeight::Cint) =
-#-     @call(:ncGrabStatsResizeRegion, Status,
-#-           (Grab, Cint, Cint, Cint),
-#-           grab, regionIndex, regionWidth, regionHeight)
-
-#- # int ncGrabStatsGetCrossSection(NcGrab grab, int regionIndex, const NcImage *image, int xCoord, int yCoord, double statsCtxRegion[5], double **histo, double **crossSectionHorizontal, double **crossSectionVertical);
-#- @inline ncGrabStatsGetCrossSection(grab::Grab, regionIndex::Cint, image::Ptr{Image}, xCoord::Cint, yCoord::Cint, statsCtxRegion::Ptr{Cdouble}, histo::Ptr{Ptr{Cdouble}}, crossSectionHorizontal::Ptr{Ptr{Cdouble}}, crossSectionVertical::Ptr{Ptr{Cdouble}}) =
-#-     @call(:ncGrabStatsGetCrossSection, Status,
-#-           (Grab, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}),
-#-           grab, regionIndex, image, xCoord, yCoord, statsCtxRegion, histo, crossSectionHorizontal, crossSectionVertical)
-
-#- # int ncGrabStatsGetGaussFit(NcGrab grab, int regionIndex, const NcImage *image, int xCoord, int yCoord, double *maxAmplitude, double gaussSumHorizontal[3], double gaussSumVertical[3], int useActualCrossSection);
-#- @inline ncGrabStatsGetGaussFit(grab::Grab, regionIndex::Cint, image::Ptr{Image}, xCoord::Cint, yCoord::Cint, maxAmplitude::Ptr{Cdouble}, gaussSumHorizontal::Ptr{Cdouble}, gaussSumVertical::Ptr{Cdouble}, useActualCrossSection::Cint) =
-#-     @call(:ncGrabStatsGetGaussFit, Status,
-#-           (Grab, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cint),
-#-           grab, regionIndex, image, xCoord, yCoord, maxAmplitude, gaussSumHorizontal, gaussSumVertical, useActualCrossSection)
 
 #------------------------------------------------------------------------------
 # CAMERA FUNCTIONS
@@ -818,6 +792,7 @@ end
 getHeartbeat(cam) -> ms
 ```
 """ getHeartbeat
+
 
 function saveImage(width::Integer, height::Integer, imageParams::ImageParams,
                    image::Ptr{Void}, dataType::ImageDataType, saveName::Name,
@@ -1570,47 +1545,21 @@ close(solutionSet::CropModeSolutions) =
 #-           (Cam, Ptr{Void}, Ptr{Void}),
 #-           cam, fct, data)
 
-#- # int ncCamStatsAddRegion(NcCam cam, int regionWidth, int regionHeight, int *regionIndex);
-#- @inline ncCamStatsAddRegion(cam::Cam, regionWidth::Cint, regionHeight::Cint, regionIndex::Ptr{Cint}) =
-#-     @call(:ncCamStatsAddRegion, Status,
-#-           (Cam, Cint, Cint, Ptr{Cint}),
-#-           cam, regionWidth, regionHeight, regionIndex)
 
-#- # int ncCamStatsRemoveRegion(NcCam cam, int regionIndex);
-#- @inline ncCamStatsRemoveRegion(cam::Cam, regionIndex::Cint) =
-#-     @call(:ncCamStatsRemoveRegion, Status,
-#-           (Cam, Cint),
-#-           cam, regionIndex)
 
-#- # int ncCamStatsResizeRegion(NcCam cam, int regionIndex, int regionWidth, int regionHeight);
-#- @inline ncCamStatsResizeRegion(cam::Cam, regionIndex::Cint, regionWidth::Cint, regionHeight::Cint) =
-#-     @call(:ncCamStatsResizeRegion, Status,
-#-           (Cam, Cint, Cint, Cint),
-#-           cam, regionIndex, regionWidth, regionHeight)
 
-#- # int ncCamStatsGetCrossSection(NcCam cam, int regionIndex, const NcImage *image, int xCoord, int yCoord, double statsCtxRegion[5], double **histo, double **crossSectionHorizontal, double **crossSectionVertical);
-#- @inline ncCamStatsGetCrossSection(cam::Cam, regionIndex::Cint, image::Ptr{Image}, xCoord::Cint, yCoord::Cint, statsCtxRegion::Ptr{Cdouble}, histo::Ptr{Ptr{Cdouble}}, crossSectionHorizontal::Ptr{Ptr{Cdouble}}, crossSectionVertical::Ptr{Ptr{Cdouble}}) =
-#-     @call(:ncCamStatsGetCrossSection, Status,
-#-           (Cam, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}),
-#-           cam, regionIndex, image, xCoord, yCoord, statsCtxRegion, histo, crossSectionHorizontal, crossSectionVertical)
+setOnStatusAlertCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
+    # int ncCamSetOnStatusAlertCallback(NcCam cam,
+    #         void (*fct)(NcCam cam, void* data, int errorCode,
+    #                     const char* errorString), void* data);
+    @call(:ncCamSetOnStatusAlertCallback, Status,
+          (Cam, Ptr{Void}, Ptr{Void}), cam, fct, data)
 
-#- # int ncCamStatsGetGaussFit(NcCam cam, int regionIndex, const NcImage *image, int xCoord, int yCoord, double *maxAmplitude, double gaussSumHorizontal[3], double gaussSumVertical[3], int useActualCrossSection);
-#- @inline ncCamStatsGetGaussFit(cam::Cam, regionIndex::Cint, image::Ptr{Image}, xCoord::Cint, yCoord::Cint, maxAmplitude::Ptr{Cdouble}, gaussSumHorizontal::Ptr{Cdouble}, gaussSumVertical::Ptr{Cdouble}, useActualCrossSection::Cint) =
-#-     @call(:ncCamStatsGetGaussFit, Status,
-#-           (Cam, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cint),
-#-           cam, regionIndex, image, xCoord, yCoord, maxAmplitude, gaussSumHorizontal, gaussSumVertical, useActualCrossSection)
-
-#- # int ncCamSetOnStatusAlertCallback(NcCam cam, void (*fct)(NcCam cam, void* data, int errorCode, const char * errorString), void * data);
-#- @inline ncCamSetOnStatusAlertCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
-#-     @call(:ncCamSetOnStatusAlertCallback, Status,
-#-           (Cam, Ptr{Void}, Ptr{Void}),
-#-           cam, fct, data)
-
-#- # int ncCamSetOnStatusUpdateCallback(NcCam cam, void (*fct)(NcCam cam, void* data), void * data);
-#- @inline ncCamSetOnStatusUpdateCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
-#-     @call(:ncCamSetOnStatusUpdateCallback, Status,
-#-           (Cam, Ptr{Void}, Ptr{Void}),
-#-           cam, fct, data)
+setOnStatusUpdateCallback(cam::Cam, fct::Ptr{Void}, data::Ptr{Void}) =
+    # int ncCamSetOnStatusUpdateCallback(NcCam cam,
+    #         void (*fct)(NcCam cam, void* data), void* data);
+    @call(:ncCamSetOnStatusUpdateCallback, Status,
+          (Cam, Ptr{Void}, Ptr{Void}), cam, fct, data)
 
 #------------------------------------------------------------------------------
 # PROCESSING FUNCTIONS
@@ -1740,24 +1689,6 @@ end
     @call(:ncStatsResize, Status, (StatsCtx, Cint, Cint),
           statsCtx, imageWidth, imageHeight)
 
-@inline function addRegion(statsCtx::StatsCtx, regionWidth::Integer, regionHeight::Integer)
-    regionIndex = Ref{Cint}()
-    # int ncStatsAddRegion(NcStatsCtx *statsCtx, int regionWidth, int regionHeight, int *regionIndex);
-    @call(:ncStatsAddRegion, Status,
-          (StatsCtx, Cint, Cint, Ptr{Cint}),
-          statsCtx, regionWidth, regionHeight, regionIndex)
-    return regionIndex[]
-end
-
-@inline removeRegion(statsCtx::StatsCtx, regionIndex::Integer) =
-    # int ncStatsRemoveRegion(NcStatsCtx *statsCtx, int regionIndex);
-    @call(:ncStatsRemoveRegion, Status, (StatsCtx, Cint), statsCtx, regionIndex)
-
-@inline resizeRegion(statsCtx::StatsCtx, regionIndex::Integer, regionWidth::Integer, regionHeight::Integer) =
-    # int ncStatsResizeRegion(NcStatsCtx *statsCtx, int regionIndex, int regionWidth, int regionHeight);
-    @call(:ncStatsResizeRegion, Status, (StatsCtx, Cint, Cint, Cint),
-          statsCtx, regionIndex, regionWidth, regionHeight)
-
 """
 ```julia
 getHistoCrossSection(statsCtx, regionIndex, image, xCoord, yCoord)
@@ -1770,32 +1701,125 @@ crossSectionHorizontal = fetcharray(crossSectionHorizontalPtr, regionWidth)
 crossSectionVertical = fetcharray(crossSectionVerticalPtr, regionHeight)
 ```
 
-"""
-function getHistoCrossSection(statsCtx::StatsCtx, regionIndex::Integer, image::Ptr{Image},
-                              xCoord::Integer, yCoord::Integer)
-    # int ncStatsGetHistoCrossSection(NcStatsCtx *statsCtx, int regionIndex, const NcImage *image, int xCoord, int yCoord, double statsCtxRegion[5], double **histo, double **crossSectionHorizontal, double **crossSectionVertical);
-    stats = Array{Cdouble}(5)
-    histo = Ref{Ptr{Cdouble}}()
-    crossSectionHorizontal = Ref{Ptr{Cdouble}}()
-    crossSectionVertical = Ref{Ptr{Cdouble}}()
-    @call(:ncStatsGetHistoCrossSection, Status,
-          (StatsCtx, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}),
-          statsCtx, regionIndex, image, xCoord, yCoord, stats, histo, crossSectionHorizontal, crossSectionVertical)
-    return stats, histo[], crossSectionHorizontal[], crossSectionVertical[]
-    arr = Array{Cdouble}(65536)
-end
+""" getHistoCrossSection
 
-function getGaussFit(statsCtx::StatsCtx, regionIndex::Integer, image::Ptr{Image},
-                     xCoord::Integer, yCoord::Integer, useActualCrossSection::Bool)
-    maxAmplitude = Ref{Cdouble}()
-    gaussSumHorizontal = Array{Cdouble}(3)
-    gaussSumVertical = Array{Cdouble}(3)
-    # int ncStatsGetGaussFit(NcStatsCtx *statsCtx, int regionIndex, const NcImage *image, int xCoord, int yCoord, double *maxAmplitude, double gaussSumHorizontal[3], double gaussSumVertical[3], int useActualCrossSectionFlag);
-    @call(:ncStatsGetGaussFit, Status,
-          (StatsCtx, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble}, Ptr{Cdouble}, Ptr{Cdouble}, Cint),
-          statsCtx, regionIndex, image, xCoord, yCoord, maxAmplitude,
-          gaussSumHorizontal, gaussSumVertical, useActualCrossSection)
-    return maxAmplitude[], gaussSumHorizontal, gaussSumVertical
+for i in 1:3
+
+    T = (Cam, Grab, StatsCtx)[i]
+
+    # int ncCamStatsAddRegion(NcCam cam, int regionWidth,
+    #         int regionHeight, int *regionIndex);
+    # int ncGrabStatsAddRegion(NcGrab grab, int regionWidth,
+    #         int regionHeight, int *regionIndex);
+    # int ncStatsAddRegion(NcStatsCtx *statsCtx, int regionWidth,
+    #         int regionHeight, int *regionIndex);
+
+    cf = (:ncCamStatsAddRegion,
+          :ncGrabStatsAddRegion,
+          :ncStatsAddRegion)[i]
+
+    @eval function addRegion(obj::$T, regionWidth::Integer,
+                             regionHeight::Integer)
+        regionIndex = Ref{Cint}()
+        @call($cf, Status, ($T, Cint, Cint, Ptr{Cint}),
+              obj, regionWidth, regionHeight, regionIndex)
+        return regionIndex[]
+    end
+
+    # int ncCamStatsRemoveRegion(NcCam cam, int regionIndex);
+    # int ncGrabStatsRemoveRegion(NcGrab grab, int regionIndex);
+    # int ncStatsRemoveRegion(NcStatsCtx *statsCtx, int regionIndex);
+
+    cf = (:ncCamStatsRemoveRegion,
+          :ncGrabStatsRemoveRegion,
+          :ncStatsRemoveRegion)[i]
+
+    @eval removeRegion(obj::$T, regionIndex::Integer) =
+        @call($cf, Status, ($T, Cint), obj, regionIndex)
+
+    # int ncCamStatsResizeRegion(NcCam cam, int regionIndex,
+    #         int regionWidth, int regionHeight);
+    # int ncGrabStatsResizeRegion(NcGrab grab, int regionIndex,
+    #         int regionWidth, int regionHeight);
+    # int ncStatsResizeRegion(NcStatsCtx *statsCtx, int regionIndex,
+    #         int regionWidth, int regionHeight);
+
+    cf = (:ncCamStatsResizeRegion,
+          :ncGrabStatsResizeRegion,
+          :ncStatsResizeRegion)[i]
+
+    @eval function resizeRegion(obj::$T, regionIndex::Integer,
+                                regionWidth::Integer, regionHeight::Integer)
+        @call($cf, Status, ($T, Cint, Cint, Cint),
+              obj, regionIndex, regionWidth, regionHeight)
+    end
+
+    # int ncCamStatsGetCrossSection(NcCam cam, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double statsCtxRegion[5], double **histo,
+    #         double **crossSectionHorizontal,
+    #         double **crossSectionVertical);
+    # int ncGrabStatsGetCrossSection(NcGrab grab, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double statsCtxRegion[5], double **histo,
+    #         double **crossSectionHorizontal,
+    #         double **crossSectionVertical);
+    # int ncStatsGetHistoCrossSection(NcStatsCtx *statsCtx, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double statsCtxRegion[5], double **histo,
+    #         double **crossSectionHorizontal,
+    #         double **crossSectionVertical);
+
+    cf = (:ncCamStatsGetCrossSection,
+          :ncGrabStatsGetCrossSection,
+          :ncStatsGetHistoCrossSection)[i]
+
+    @eval function getHistoCrossSection(obj::$T, regionIndex::Integer,
+                                        image::Ptr{Image}, xCoord::Integer,
+                                        yCoord::Integer)
+        stats = Array{Cdouble}(5)
+        histo = Ref{Ptr{Cdouble}}()
+        crossSectionHorizontal = Ref{Ptr{Cdouble}}()
+        crossSectionVertical = Ref{Ptr{Cdouble}}()
+        @call($cf, Status,
+              ($T, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble},
+               Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}, Ptr{Ptr{Cdouble}}),
+              obj, regionIndex, image, xCoord, yCoord, stats, histo,
+              crossSectionHorizontal, crossSectionVertical)
+        return (stats, histo[], crossSectionHorizontal[],
+                crossSectionVertical[])
+    end
+
+    # int ncCamStatsGetGaussFit(NcCam cam, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double *maxAmplitude, double gaussSumHorizontal[3],
+    #         double gaussSumVertical[3], int useActualCrossSection);
+    # int ncGrabStatsGetGaussFit(NcGrab grab, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double *maxAmplitude, double gaussSumHorizontal[3],
+    #         double gaussSumVertical[3], int useActualCrossSection);
+    # int ncStatsGetGaussFit(NcStatsCtx *statsCtx, int regionIndex,
+    #         const NcImage *image, int xCoord, int yCoord,
+    #         double *maxAmplitude, double gaussSumHorizontal[3],
+    #         double gaussSumVertical[3], int useActualCrossSection);
+
+    cf = (:ncCamStatsGetGaussFit,
+          :ncGrabStatsGetGaussFit,
+          :ncStatsGetGaussFit)[i]
+
+    @eval function getGaussFit(obj::$T, regionIndex::Integer,
+                               image::Ptr{Image}, xCoord::Integer,
+                               yCoord::Integer, useActualCrossSection::Bool)
+        maxAmplitude = Ref{Cdouble}()
+        gaussSumHorizontal = Array{Cdouble}(3)
+        gaussSumVertical = Array{Cdouble}(3)
+        @call($cf, Status, ($T, Cint, Ptr{Image}, Cint, Cint, Ptr{Cdouble},
+                            Ptr{Cdouble}, Ptr{Cdouble}, Cint),
+              obj, regionIndex, image, xCoord, yCoord, maxAmplitude,
+              gaussSumHorizontal, gaussSumVertical, useActualCrossSection)
+        return maxAmplitude[], gaussSumHorizontal, gaussSumVertical
+    end
+
 end
 
 
