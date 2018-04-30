@@ -67,8 +67,8 @@ function fetcharray(ptr::Ptr{T}, n::Integer) where {T}
 end
 
 # Round timeout to nearest integer.
-setTimeout(tgt::Union{Cam,Grab}, ms::Real) =
-    setTimeout(tgt, rount(Cint, ms))
+setTimeout(handle::Union{Cam,Grab}, ms::Real) =
+    setTimeout(handle, rount(Cint, ms))
 
 function writeFileHeader(currentFile::ImageSaved, dataType::HeaderDataType,
                          name::Name, value::Ptr{Void}, comment::Name)
@@ -1853,25 +1853,25 @@ end
 #------------------------------------------------------------------------------
 # PARAMETERS
 
-getParam(::Type{Bool}, src::Union{Cam,Grab}, name::Name) =
-    (getParamInt(src, name) != 0)
+getParam(::Type{Bool}, handle::Union{Cam,Grab}, name::Name) =
+    (getParamInt(handle, name) != 0)
 
-getParam(::Type{T}, src::Union{Cam,Grab}, name::Name) where {T<:Integer} =
-    convert(T, getParamInt(src, name))
+getParam(::Type{T}, handle::Union{Cam,Grab}, name::Name) where {T<:Integer} =
+    convert(T, getParamInt(handle, name))
 
-getParam(::Type{T}, src::Union{Cam,Grab}, name::Name) where {T<:AbstractFloat} =
-    convert(T, getParamDbl(src, name))
+getParam(::Type{T}, handle::Union{Cam,Grab}, name::Name) where {T<:AbstractFloat} =
+    convert(T, getParamDbl(handle, name))
 
-function getParam(::Type{String}, src::Union{Cam,Grab}, name::Name)
-    siz = getParamStrSize(src, name)
+function getParam(::Type{String}, handle::Union{Cam,Grab}, name::Name)
+    siz = getParamStrSize(handle, name)
     buf = Array{Cchar}(siz + 1) # FIXME: check this!
-    getParamStr(src, name, buf)
+    getParamStr(handle, name, buf)
     buf[end] = 0
     return unsafe_string(pointer(buf)) # FIXME: is there a better way?
 end
 
-getParam(::Type{Function}, src::Union{Cam,Grab}, name::Name) =
-    getParamCallback(src, name)
+getParam(::Type{Function}, handle::Union{Cam,Grab}, name::Name) =
+    getParamCallback(handle, name)
 
 
 for (H, jf, cf) in (
