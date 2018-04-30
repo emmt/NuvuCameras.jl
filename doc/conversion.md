@@ -128,15 +128,15 @@ and the corresponding Julia methods.
 | ncGrabSaveImageEx                        | saveImage                           |
 | ncGrabStartSaveAcquisition               |                                     |
 | ncGrabStopSaveAcquisition                | stopSaveAcquisition                 |
-| ncGrabSaveImageSetHeaderCallback         |                                     |
-| ncGrabSaveImageWriteCallback             |                                     |
-| ncGrabSaveImageCloseCallback             |                                     |
+| ncGrabSaveImageSetHeaderCallback         | setWriteHeaderCallback              |
+| ncGrabSaveImageWriteCallback             | setWriteImageCallback               |
+| ncGrabSaveImageCloseCallback             | setCloseImageCallback               |
 | ncGrabSaveImageSetCompressionType        |                                     |
 | ncGrabSaveImageGetCompressionType        |                                     |
 | ncGrabSaveParam                          | saveParam                           |
 | ncGrabLoadParam                          | loadParam                           |
-| ncGrabSaveParamSetHeaderCallback         |                                     |
-| ncGrabLoadParamSetHeaderCallback         |                                     |
+| ncGrabSaveParamSetHeaderCallback         | setSaveParamHeaderCallback          |
+| ncGrabLoadParamSetHeaderCallback         | setLoadParamHeaderCallback          |
 | ncGrabSetTimestampMode                   | setTimestampMode                    |
 | ncGrabGetTimestampMode                   | getTimestampMode                    |
 | ncGrabSetTimestampInternal               | setTimestampInternal                |
@@ -159,7 +159,7 @@ and the corresponding Julia methods.
 | ncGrabCancelBiasCreation                 | cancelBiasCreation                  |
 | ncGrabSetProcType                        | setProcType                         |
 | ncGrabGetProcType                        | getProcType                         |
-| ncGrabCreateBiasNewImageCallback         |                                     |
+| ncGrabCreateBiasNewImageCallback         | setCreateBiasCallback               |
 | ncGrabParamSupportedInt                  | supportedParamInt                   |
 | ncGrabParamSupportedDbl                  | supportedParamDbl                   |
 | ncGrabParamSupportedStr                  | supportedParamStr                   |
@@ -236,9 +236,9 @@ and the corresponding Julia methods.
 | ncCamSaveImageEx                         | saveImage                           |
 | ncCamStartSaveAcquisition                |                                     |
 | ncCamStopSaveAcquisition                 | stopSaveAcquisition                 |
-| ncCamSaveImageSetHeaderCallback          |                                     |
-| ncCamSaveImageWriteCallback              |                                     |
-| ncCamSaveImageCloseCallback              |                                     |
+| ncCamSaveImageSetHeaderCallback          | setWriteHeaderCallback              |
+| ncCamSaveImageWriteCallback              | setWriteImageCallback               |
+| ncCamSaveImageCloseCallback              | setCloseImageCallback               |
 | ncCamSaveImageSetCompressionType         |                                     |
 | ncCamSaveImageGetCompressionType         |                                     |
 | ncCamResetTimer                          |                                     |
@@ -252,8 +252,8 @@ and the corresponding Julia methods.
 | ncCamParamAvailable                      |                                     |
 | ncCamSaveParam                           | saveParam                           |
 | ncCamLoadParam                           | loadParam                           |
-| ncCamSaveParamSetHeaderCallback          |                                     |
-| ncCamLoadParamSetHeaderCallback          |                                     |
+| ncCamSaveParamSetHeaderCallback          | setSaveParamHeaderCallback          |
+| ncCamLoadParamSetHeaderCallback          | setLoadParamHeaderCallback          |
 | ncCamSetReadoutMode                      | setReadoutMode                      |
 | ncCamGetCurrentReadoutMode               | getCurrentReadoutMode               |
 | ncCamGetReadoutMode                      | getReadoutMode                      |
@@ -330,7 +330,7 @@ and the corresponding Julia methods.
 | ncCamCancelBiasCreation                  |                                     |
 | ncCamGetProcType                         | getProcType                         |
 | ncCamSetProcType                         | setProcType                         |
-| ncCamCreateBiasNewImageCallback          |                                     |
+| ncCamCreateBiasNewImageCallback          | setCreateBiasCallback               |
 | ncCamSetOnStatusAlertCallback            | setOnStatusAlertCallback            |
 | ncCamSetOnStatusUpdateCallback           | setOnStatusUpdateCallback           |
 | ncCamSetStatusPollRate                   | setStatusPollRate                   |
