@@ -13,7 +13,7 @@
 # SDK with some simplifications to make them easy to use (see documentation).
 #
 # There are 337 non-deprecated functions in the Nüvü Camēras SDK.
-# 332 have been currently interfaced.
+# 335 have been currently interfaced.
 #
 
 if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
@@ -264,13 +264,6 @@ for (m, H, f) in (
 
 end
 
-#- # int ncGrabGetVersion(NcGrab grab, enum VersionType versionType, char * version, int bufferSize);
-#- ncGrabGetVersion(grab::Grab, versionType::VersionType, version::Ptr{Cchar}, bufferSize::Cint) =
-#-     @call(:ncGrabGetVersion, Status,
-#-           (Grab, VersionType, Ptr{Cchar}, Cint),
-#-           grab, versionType, version, bufferSize)
-
-
 #------------------------------------------------------------------------------
 # CAMERA FUNCTIONS
 
@@ -394,6 +387,33 @@ end
 
 #------------------------------------------------------------------------------
 
+# FIXME: check code
+for (m, H, f) in (
+    # int ncGrabGetVersion(NcGrab grab, enum VersionType versionType,
+    #         char* version, int bufferSize);
+    (:getVersion, Grab, :ncGrabGetVersion),
+
+    # int ncCamGetVersion(NcCam cam, enum VersionType versionType,
+    #         char* version, int bufferSize);
+    (:getVersion, Cam, :ncCamGetVersion),
+)
+    @eval function $m(handle::$H, versionType::VersionType)
+        buf = Array{Cchar}(256)
+        @call($f, Status,
+              ($H, VersionType, Ptr{Cchar}, Cint),
+              handle, versionType, buf, sizeof(buf) - 1)
+        buf[end] = 0
+        return unsafe_string(pointer(buf))
+    end
+end
+
+function getSerialNumber(cam::Cam)
+    buf = Array{Cchar}(64) # FIXME: the doc. says 32 is enough...
+    # int ncCamGetSerialNumber(NcCam cam, char *sn);
+    @call(:ncCamGetSerialNumber, Status, (Cam, Ptr{Cchar}), cam, buf)
+    buf[end] = 0
+    return unsafe_string(pointer(buf))
+end
 
 #- # int ncCamGetCurrentReadoutMode(NcCam cam, int* readoutMode, enum Ampli* ampliType, char* ampliString, int *vertFreq, int *horizFreq);
 #- ncCamGetCurrentReadoutMode(cam::Cam, readoutMode::Ptr{Cint}, ampliType::Ptr{Ampli}, ampliString::Ptr{Cchar}, vertFreq::Ptr{Cint}, horizFreq::Ptr{Cint}) =
@@ -407,27 +427,14 @@ end
 #-           (Cam, Cint, Ptr{Ampli}, Ptr{Cchar}, Ptr{Cint}, Ptr{Cint}),
 #-           cam, number, ampliType, ampliString, vertFreq, horizFreq)
 
-# int ncCamGetSerialNumber(NcCam cam, char *sn);
-function getSerialNumber(cam::Cam)
-    buf = Array{Cchar}(64)
-    @call(:ncCamGetSerialNumber, Status, (Cam, Ptr{Cchar}), cam, buf)
-    buf[end] = 0
-    return unsafe_string(pointer(buf))
+# FIXME: undocumented
+function getDetectorTypeName(detectorType::DetectorType)
+    str = Ref{Ptr{Cchar}}()
+    # int ncCamDetectorTypeEnumToString(enum DetectorType detectorType, const char** str);
+    @call(:ncCamDetectorTypeEnumToString, Status,
+          (DetectorType, Ptr{Ptr{Cchar}}), detectorType, str)
+    return unsafe_string(str[])
 end
-
-#- # int ncCamDetectorTypeEnumToString(enum DetectorType detectorType, const char** str);
-#- ncCamDetectorTypeEnumToString(detectorType::DetectorType, str::Ptr{Ptr{Cchar}}) =
-#-     @call(:ncCamDetectorTypeEnumToString, Status,
-#-           (DetectorType, Ptr{Ptr{Cchar}}),
-#-           detectorType, str)
-
-
-#- # int ncCamGetVersion(NcCam cam, enum VersionType versionType, char * version, int bufferSize);
-#- ncCamGetVersion(cam::Cam, versionType::VersionType, version::Ptr{Cchar}, bufferSize::Cint) =
-#-     @call(:ncCamGetVersion, Status,
-#-           (Cam, VersionType, Ptr{Cchar}, Cint),
-#-           cam, versionType, version, bufferSize)
-
 
 #------------------------------------------------------------------------------
 # CALLBACKS

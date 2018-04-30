@@ -303,7 +303,7 @@ and the corresponding Julia methods.
 | ncCamGetComponentTemp                    | getComponentTemp                    |
 | ncCamGetSerialNumber                     | getSerialNumber                     |
 | ncCamGetDetectorType                     | getDetectorType                     |
-| ncCamDetectorTypeEnumToString            |                                     |
+| ncCamDetectorTypeEnumToString            | getDetectorTypeName                 |
 | ncCamSetBinningMode                      | setBinningMode                      |
 | ncCamGetBinningMode                      | getBinningMode                      |
 | ncCamSetMRoiSize                         | setMRoiSize                         |
