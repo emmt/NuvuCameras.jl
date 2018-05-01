@@ -4,6 +4,8 @@
 # Definitions of types for the interface to the Nüvü Camēras SDK.
 #
 
+import Base.Libc: TmStruct
+
 """
 
 All C functions to the Nüvü Camēras SDK yield a value of type `Status`.  Which
@@ -60,18 +62,3 @@ end
 const Image = UInt16
 
 const ImageBuffer{T} = Union{Ptr{T},DenseVector{T},DenseMatrix{T}}
-
-# FIXME: This definition should be automatically computed.
-struct TmStruct
-    tm_sec::Cint         # Seconds.     [0-60] (1 leap second)
-    tm_min::Cint         # Minutes.     [0-59]
-    tm_hour::Cint        # Hours.       [0-23]
-    tm_mday::Cint        # Day.         [1-31]
-    tm_mon::Cint         # Month.       [0-11]
-    tm_year::Cint        # Year - 1900.
-    tm_wday::Cint        # Day of week. [0-6]
-    tm_yday::Cint        # Days in year.[0-365]
-    tm_isdst::Cint       # DST.         [-1/0/1]
-    tm_gmtoff::Clong     # Seconds east of UTC.
-    tm_zone::Ptr{Cchar}  # Timezone abbreviation.
-end
