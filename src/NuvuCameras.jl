@@ -1,3 +1,11 @@
+#
+# NuvuCameras.jl -
+#
+# Provide Julia interface to the Nüvü Camēras SDK.
+#
+
+__precompile__(true)
+
 module NuvuCameras
 
 # Low level interface.  All functions, types and constants are made available
