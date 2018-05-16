@@ -212,11 +212,11 @@ for (m, f) in (
         end
         buf = Array{UInt8}(nbytes)
         status = Status(@call($f, Cint, (CtrlList, Cint, Ptr{UInt8}, Cint),
-                              ctrlList, index, ptr, nbytes))
+                              ctrlList, index, buf, nbytes))
         if status != SUCCESS
             throw(NuvuCameraError($qf, status))
         end
-        return stringify!(ptr)
+        return stringify!(buf)
     end
 
 end
