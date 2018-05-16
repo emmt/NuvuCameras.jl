@@ -80,7 +80,7 @@ function stringify!(buf::Vector{UInt8})
     # as strings are supposed to be immutable in Julia).
     len = length(buf)
     @inbounds for i in 1:len
-        if buf[i] == zero(T)
+        if buf[i] == zero(UInt8)
             resize!(buf, i - 1)
             break
         end
@@ -968,13 +968,13 @@ for (m, H, f, T) in (
 
     if T == Bool
         @eval function $m(handle::$H)
-            out::Ref{Cint}()
+            out = Ref{Cint}()
             @call($f, Status, ($H, Ptr{$T}), handle, out)
             return (out[] != zero(Cint))
         end
     else
         @eval function $m(handle::$H)
-            out::Ref{$T}()
+            out = Ref{$T}()
             @call($f, Status, ($H, Ptr{$T}), handle, out)
             return out[]
         end
@@ -1017,16 +1017,8 @@ for (m, H, f, T1, T2) in (
     (:getCalibratedEmGainTempRange, Cam,
      :ncCamGetCalibratedEmGainTempRange, Cdouble, Cdouble),
 
-    # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList,
-    #         int index, int* detectorSizeX, int* detectorSizeY);
-    (:getDetectorSize, CtrlList, :ncControllerListGetDetectorSize, Cint, Cint),
-
     # int ncCamGetFullCCDSize(NcCam cam, int *width, int *height);
     (:getFullCCDSize, Cam, :ncCamGetFullCCDSize, Cint, Cint),
-
-    # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList,
-    #         int index, int* detectorSizeX, int* detectorSizeY);
-    (:getFullSize, CtrlList, :ncControllerListGetFullSizeSize, Cint, Cint),
 
     # int ncCamGetMaxSize(NcCam cam, int *width, int *height);
     (:getMaxSize, Cam, :ncCamGetMaxSize, Cint, Cint),
@@ -1077,15 +1069,15 @@ for (m, H, f, T1, T2) in (
 
     if T2 == Bool
         @eval function $m(handle::$H)
-            out1::Ref{$T1}()
-            out2::Ref{Cint}()
+            out1 = Ref{$T1}()
+            out2 = Ref{Cint}()
             @call($f, Status, ($H, Ptr{$T1}, Ptr{Cint}), handle, out1, out2)
             return out1[], (out2[] != zero(Cint))
         end
     else
         @eval function $m(handle::$H)
-            out1::Ref{$T1}()
-            out2::Ref{$T2}()
+            out1 = Ref{$T1}()
+            out2 = Ref{$T2}()
             @call($f, Status, ($H, Ptr{$T1}, Ptr{$T2}), handle, out1, out2)
             return out1[], out2[]
         end
@@ -1652,6 +1644,16 @@ end
 # and a boolean value is returned.
 #
 for (m, H, Tj1, f, Tc1, Tc2, Tc3) in (
+
+    # int ncControllerListGetDetectorSize(const NcCtrlList ctrlList,
+    #         int index, int* detectorSizeX, int* detectorSizeY);
+    (:getDetectorSize, CtrlList, Integer,
+     :ncControllerListGetDetectorSize, Cint, Cint, Cint),
+
+    # int ncControllerListGetFullSizeSize(const NcCtrlList ctrlList,
+    #         int index, int* detectorSizeX, int* detectorSizeY);
+    (:getFullSize, CtrlList, Integer,
+     :ncControllerListGetFullSizeSize, Cint, Cint, Cint),
 
     # int ncCamGetMRoiPosition(NcCam cam, int index,
     #         int* offsetX, int* offsetY);
