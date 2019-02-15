@@ -16,10 +16,10 @@
 # interfaced.
 #
 
-if isfile(joinpath(dirname(@__FILE__),"..","deps","deps.jl"))
+if isfile(joinpath(@__DIR__,"..","deps","deps.jl"))
     include("../deps/deps.jl")
 else
-    error("NuvuCameras not properly installed.  Please run `Pkg.build(\"NuvuCameras\")` to create file \"",joinpath(dirname(@__FILE__),"..","deps","deps.jl"),"\"")
+    error("NuvuCameras not properly installed.  Please run `Pkg.build(\"NuvuCameras\")` to create file \"",joinpath(@__DIR__,"..","deps","deps.jl"),"\"")
 end
 
 """
@@ -36,10 +36,10 @@ If `rtype` is `Status`, the code is wrapped so that an exception
 
 """
 macro call(func, rtype, args...)
-    qfunc = QuoteNode(__symbol(func))
-    expr = Expr(:call, :ccall, Expr(:tuple, qfunc, :libnuvu), rtype, args...)
-    #expr = Expr(:call, :ccall, Expr(:tuple, qfunc, Expr(:ref, :dll)), rtype, args...)
-    #expr = Expr(:call, :ccall, Expr(:ref, func), rtype, args...)
+    sfunc = __symbol(func)
+    qfunc = QuoteNode(sfunc)
+    expr = Expr(:call, :ccall, qfunc, rtype, args...)
+    #expr = Expr(:call, :ccall, Expr(:tuple, qfunc, :libnuvu), rtype, args...)
     if rtype == :Status
         return quote
             local status
@@ -53,49 +53,6 @@ macro call(func, rtype, args...)
     end
 end
 
-# The following vector is used to store refrences to preloaded DLL's for the
-# SDK and its plugins.
-const __dlls = Array{Ptr{Void}}(0)
-function __init__()
-    # The SDK serial communications assume "C" locale for the representation of
-    # numerical values.
-    ENV["LC_NUMERIC"] = "C"
-
-    # Pre-load the DLL's of the SDK and its plugins.  Option RTLD_GLOBAL is
-    # needed here, RTLD_DEEPBIND and RTLD_LAZY may be unnecessary but are set
-    # as they are set by default.
-    flags = (Libdl.RTLD_LAZY | Libdl.RTLD_DEEPBIND | Libdl.RTLD_GLOBAL)
-    resize!(__dlls, 0)
-    ptr = Libdl.dlopen(libnuvu, flags)
-    push!(__dlls, ptr)
-    if haskey(ENV, "NUVU_SDK_PLUGIN_DIR")
-        plugdir = ENV["NUVU_SDK_PLUGIN_DIR"]
-    else
-        dir = dirname(libnuvu)
-        if endswith(dir, "/lib")
-            dir = joinpath(dir, "..")
-        end
-        plugdir = realpath(joinpath(dir, "Plugins"))
-    end
-    ext = Libdl.dlext
-    if ! startswith(".", ext)
-        ext = "." * ext
-    end
-    for (root, dirs, files) in walkdir(plugdir)
-        for file in files
-            if endswith(file, ext)
-                path = joinpath(root, file)
-                ptr = Libdl.dlopen_e(path, flags)
-                if ptr == C_NULL
-                    warn("Failed to load \"$path\"")
-                else
-                    push!(__dlls, ptr)
-                end
-            end
-        end
-    end
-end
-
 __symbol(x::Symbol) = x
 __symbol(x::AbstractString) = Symbol(x) # FIXME: check of validity of the name
 function __symbol(x::Expr)
@@ -103,6 +60,22 @@ function __symbol(x::Expr)
         return __symbol(x.args[1])
     end
     error("bad argument (expected a symbol, a name or a variable)")
+end
+
+# The following vector is used to store references to preloaded DLL's for the
+# SDK and its plugins.
+#const __dlls = Array{Ptr{Void}}(0)
+const __dll = Ref{Ptr{Void}}(0)
+function __init__()
+    # The SDK serial communications assume "C" locale for the representation of
+    # numerical values.
+    ENV["LC_NUMERIC"] = "C"
+
+    # Pre-load the DLL's of the SDK.  Option RTLD_GLOBAL is needed here,
+    # RTLD_DEEPBIND and RTLD_LAZY may be unnecessary but are set as they are
+    # set by default.
+    flags = (Libdl.RTLD_NOW | Libdl.RTLD_DEEPBIND | Libdl.RTLD_GLOBAL)
+    __dll[] = Libdl.dlopen(libnuvu, flags)
 end
 
 """
