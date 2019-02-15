@@ -11,7 +11,7 @@
 
 const char* progname = "listctrl";
 
-#define TRY(func,args) do {                     \
+#define CALL(func,args) do {                    \
     int status = func args;                     \
     if (status != NC_SUCCESS) {                 \
       failure(#func, status);                   \
@@ -58,9 +58,12 @@ static char* getctrlstring(const char* funcname,
 
 int main(int argc, char* argv[])
 {
+  NcCam cam;
   NcCtrlList ctrl;
   int basic = 1;
-  int i;
+  int nbufs = 4;
+  int nmodes;
+  int i, j;
   int numcontrollers, numfreeports, numplugins;
   int portunit, portchannel;
   int fullwidth, fullheight;
@@ -74,12 +77,12 @@ int main(int argc, char* argv[])
 
   ctrl = NULL;
   if (basic) {
-    TRY(ncControllerListOpenBasic,(&ctrl));
+    CALL(ncControllerListOpenBasic,(&ctrl));
   } else {
-    TRY(ncControllerListOpen,(&ctrl));
+    CALL(ncControllerListOpen,(&ctrl));
   }
 
-  TRY(ncControllerListGetSize,(ctrl, &numcontrollers));
+  CALL(ncControllerListGetSize,(ctrl, &numcontrollers));
   printf("%d controller(s) found\n", numcontrollers);
   for (i = 0; i < numcontrollers; ++i) {
     model = GETSTR(ncControllerListGetModel, ctrl, i);
@@ -94,10 +97,10 @@ int main(int argc, char* argv[])
     printf("  %d: Port interface ---> %s\n", i, portinterface);
     free(portinterface);
 
-    TRY(ncControllerListGetPortUnit,(ctrl, i, &portunit));
+    CALL(ncControllerListGetPortUnit,(ctrl, i, &portunit));
     printf("  %d: Port unit --------> %d\n", i, portunit);
 
-    TRY(ncControllerListGetPortChannel,(ctrl, i, &portchannel));
+    CALL(ncControllerListGetPortChannel,(ctrl, i, &portchannel));
     printf("  %d: Port channel -----> %d\n", i, portchannel);
 
     uniqueid = GETSTR(ncControllerListGetUniqueID, ctrl, i);
@@ -108,25 +111,25 @@ int main(int argc, char* argv[])
     printf("  %d: Detector type ----> %s\n", i, detectortype);
     free(detectortype);
 
-    TRY(ncControllerListGetFullSizeSize,(ctrl, i, &fullwidth, &fullheight));
+    CALL(ncControllerListGetFullSizeSize,(ctrl, i, &fullwidth, &fullheight));
     printf("  %d: Full size --------> %d x %d\n", i, fullwidth, fullheight);
 
-    TRY(ncControllerListGetDetectorSize,(ctrl, i, &detectorwidth, &detectorheight));
+    CALL(ncControllerListGetDetectorSize,(ctrl, i, &detectorwidth, &detectorheight));
     printf("  %d: Detector size ----> %d x %d\n", i, detectorwidth, detectorheight);
   }
   printf("\n");
 
-  TRY(ncControllerListGetFreePortCount,(ctrl, &numfreeports));
+  CALL(ncControllerListGetFreePortCount,(ctrl, &numfreeports));
   printf("%d free port(s) found\n", numfreeports);
   for (i = 0; i < numfreeports; ++i) {
     portinterface = GETSTR(ncControllerListGetFreePortInterface, ctrl, i);
     printf("  %d: Port interface ---> %s\n", i, portinterface);
     free(portinterface);
 
-    TRY(ncControllerListGetFreePortUnit,(ctrl, i, &portunit));
+    CALL(ncControllerListGetFreePortUnit,(ctrl, i, &portunit));
     printf("  %d: Port unit --------> %d\n", i, portunit);
 
-    TRY(ncControllerListGetFreePortChannel,(ctrl, i, &portchannel));
+    CALL(ncControllerListGetFreePortChannel,(ctrl, i, &portchannel));
     printf("  %d: Port channel -----> %d\n", i, portchannel);
 
     uniqueid = GETSTR(ncControllerListGetFreePortUniqueID, ctrl, i);
@@ -135,7 +138,7 @@ int main(int argc, char* argv[])
   }
   printf("\n");
 
-  TRY(ncControllerListGetPluginCount,(ctrl, &numplugins));
+  CALL(ncControllerListGetPluginCount,(ctrl, &numplugins));
   printf("%d plugin(s) found\n", numplugins);
   for (i = 0; i < numplugins; ++i) {
     pluginname = GETSTR(ncControllerListGetPluginName, ctrl, i);
@@ -143,8 +146,27 @@ int main(int argc, char* argv[])
     free(pluginname);
   }
 
+
+  for (i = 0; i < numcontrollers; ++i) {
+    CALL(ncCamOpenFromList,(ctrl, i, nbufs, &cam));
+    CALL(ncCamGetNbrReadoutModes,(cam, &nmodes));
+    for (j = 1; j <= nmodes; ++j) {
+      enum Ampli amplitype;
+      char ampliname[8];
+      int vfreq, hfreq;
+      CALL(ncCamGetReadoutMode,(cam, j, &amplitype, ampliname, &vfreq, &hfreq));
+      printf(" > Readout mode number %d:\n", j);
+      printf("   Amplifier type: %s (%s)\n", ampliname,
+             (amplitype == NOTHING ? "NOTHING" : (
+               amplitype == EM ? "EM" : (
+                 amplitype == CONV ? "CONV" : "???"))));
+      printf("   Vertical frequency:   %10.6f MHz\n", 1e-6*vfreq);
+      printf("   Horizontal frequency: %10.6f MHz\n", 1e-6*hfreq);
+    }
+  }
+
   if (ctrl != NULL) {
-    TRY(ncControllerListFree,(ctrl));
+    CALL(ncControllerListFree,(ctrl));
   }
 
   return 0;
